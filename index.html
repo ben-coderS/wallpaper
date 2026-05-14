@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>壁纸</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+        canvas {
+            display: block;
+            max-width: 100%;
+            max-height: 100vh;
+        }
+        #timer {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            color: rgba(255,255,255,0.5);
+            font-size: 12px;
+            font-family: monospace;
+        }
+        #refresh {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            color: rgba(255,255,255,0.5);
+            font-size: 12px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="wallpaper"></canvas>
+    <div id="timer"></div>
+    <div id="refresh">点击刷新</div>
+    <script>
+        const canvas = document.getElementById('wallpaper');
+        const ctx = canvas.getContext('2d');
+        let currentTheme = 0;
+        const themes = [
+            'aurora', 'nebula', 'city', 'ocean', 'forest'
+        ];
+        
+        function resize() {
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            canvas.width = w;
+            canvas.height = h;
+            draw();
+        }
+        
+        function draw() {
+            const w = canvas.width;
+            const h = canvas.height;
+            const theme = themes[currentTheme];
+            
+            switch(theme) {
+                case 'aurora': drawAurora(w, h); break;
+                case 'nebula': drawNebula(w, h); break;
+                case 'city': drawCity(w, h); break;
+                case 'ocean': drawOcean(w, h); break;
+                case 'forest': drawForest(w, h); break;
+            }
+            
+            document.getElementById('timer').textContent = `下一张: ${60 - Math.floor((Date.now() / 1000) % 60)}s`;
+        }
+        
+        function drawAurora(w, h) {
+            // 极光背景
+            const grad = ctx.createLinearGradient(0, 0, 0, h);
+            grad.addColorStop(0, '#0a0a1a');
+            grad.addColorStop(0.3, '#0d1b2a');
+            grad.addColorStop(0.6, '#1b263b');
+            grad.addColorStop(1, '#0f0f23');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, w, h);
+            
+            // 星星
+            for (let i = 0; i < 150; i++) {
+                ctx.beginPath();
+                ctx.arc(Math.random() * w, Math.random() * h * 0.6, Math.random() * 1.5, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.8 + 0.2})`;
+                ctx.fill();
+            }
+            
+            // 极光波纹
+            for (let j = 0; j < 5; j++) {
+                ctx.beginPath();
+                ctx.moveTo(0, h * 0.3);
+                for (let x = 0; x <= w; x += 20) {
+                    const y = h * 0.3 + Math.sin(x * 0.01 + j * 0.5) * h * 0.15 + Math.sin(x * 0.005) * h * 0.1;
+                    ctx.lineTo(x, y);
+                }
+                ctx.lineTo(w, h);
+                ctx.lineTo(0, h);
+                ctx.closePath();
+                const colors = [
+                    ['rgba(0,255,170,', 'rgba(0,200,150,'],
+                    ['rgba(100,0,255,', 'rgba(150,50,200,'],
+                    ['rgba(0,150,255,', 'rgba(0,100,200,'],
+                    ['rgba(255,100,0,', 'rgba(200,80,0,'],
+                    ['rgba(0,255,255,', 'rgba(0,200,200,']
+                ];
+                const c = colors[j % colors.length];
+                const grad2 = ctx.createLinearGradient(0, h * 0.2, 0, h);
+                grad2.addColorStop(0, c[0] + '0.3)');
+                grad2.addColorStop(1, c[1] + '0)');
+                ctx.fillStyle = grad2;
+                ctx.fill();
+            }
+        }
+        
+        function drawNebula(w, h) {
+            // 星云背景
+            const grad = ctx.createRadialGradient(w * 0.3, h * 0.4, 0, w * 0.5, h * 0.5, w * 0.8);
+            grad.addColorStop(0, '#1a0a2e');
+            grad.addColorStop(0.3, '#16082a');
+            grad.addColorStop(0.6, '#0f0a20');
+            grad.addColorStop(1, '#050510');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, w, h);
+            
+            // 星云团
+            for (let i = 0; i < 8; i++) {
+                const x = Math.random() * w;
+                const y = Math.random() * h;
+                const r = Math.random() * 200 + 100;
+                const colors = ['rgba(138,43,226,', 'rgba(255,20,147,', 'rgba(0,191,255,', 'rgba(255,69,0,'];
+                const c = colors[i % colors.length];
+                const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+                g.addColorStop(0, c + '0.3)');
+                g.addColorStop(0.5, c + '0.1)');
+                g.addColorStop(1, c + '0)');
+                ctx.fillStyle = g;
+                ctx.fillRect(0, 0, w, h);
+            }
+            
+            // 星星
+            for (let i = 0; i < 200; i++) {
+                ctx.beginPath();
+                ctx.arc(Math.random() * w, Math.random() * h, Math.random() * 2, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.5 + 0.5})`;
+                ctx.fill();
+            }
+        }
+        
+        function drawCity(w, h) {
+            // 天空渐变
+            const grad = ctx.createLinearGradient(0, 0, 0, h);
+            grad.addColorStop(0, '#0c1445');
+            grad.addColorStop(0.4, '#1a237e');
+            grad.addColorStop(0.7, '#4a148c');
+            grad.addColorStop(1, '#1a1a2e');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, w, h);
+            
+            // 星星
+            for (let i = 0; i < 80; i++) {
+                ctx.beginPath();
+                ctx.arc(Math.random() * w, Math.random() * h * 0.5, Math.random() * 1.2, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.6 + 0.4})`;
+                ctx.fill();
+            }
+            
+            // 月亮
+            const moonX = w * 0.8;
+            const moonY = h * 0.15;
+            const moonR = Math.min(w, h) * 0.06;
+            const moonG = ctx.createRadialGradient(moonX, moonY, 0, moonX, moonY, moonR * 2);
+            moonG.addColorStop(0, 'rgba(255,255,200,0.9)');
+            moonG.addColorStop(0.5, 'rgba(255,255,200,0.2)');
+            moonG.addColorStop(1, 'rgba(255,255,200,0)');
+            ctx.fillStyle = moonG;
+            ctx.fillRect(moonX - moonR * 2, moonY - moonR * 2, moonR * 4, moonR * 4);
+            ctx.beginPath();
+            ctx.arc(moonX, moonY, moonR, 0, Math.PI * 2);
+            ctx.fillStyle = '#fffae6';
+            ctx.fill();
+            
+            // 城市剪影
+            ctx.fillStyle = '#0a0a15';
+            const buildings = [];
+            let x = 0;
+            while (x < w) {
+                const bw = Math.random() * 40 + 20;
+                const bh = Math.random() * h * 0.5 + h * 0.15;
+                buildings.push({ x, w: bw, h: bh });
+                x += bw + Math.random() * 5;
+            }
+            
+            buildings.forEach(b => {
+                ctx.fillRect(b.x, h - b.h, b.w, b.h);
+                // 窗户
+                for (let wy = h - b.h + 10; wy < h - 20; wy += 15) {
+                    for (let wx = b.x + 5; wx < b.x + b.w - 5; wx += 10) {
+                        if (Math.random() > 0.3) {
+                            ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,220,100,0.8)' : 'rgba(100,150,255,0.6)';
+                            ctx.fillRect(wx, wy, 6, 8);
+                        }
+                    }
+                }
+                ctx.fillStyle = '#0a0a15';
+            });
+            
+            // 倒影
+            ctx.fillStyle = 'rgba(100,150,255,0.1)';
+            buildings.forEach(b => {
+                ctx.fillRect(b.x, h - b.h * 0.1, b.w, b.h * 0.1);
+            });
+        }
+        
+        function drawOcean(w, h) {
+            // 深海背景
+            const grad = ctx.createLinearGradient(0, 0, 0, h);
+            grad.addColorStop(0, '#006994');
+            grad.addColorStop(0.3, '#004d6e');
+            grad.addColorStop(0.6, '#00334d');
+            grad.addColorStop(1, '#001a2e');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, w, h);
+            
+            // 光线
+            for (let i = 0; i < 15; i++) {
+                const x = Math.random() * w;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x - 30, h);
+                ctx.lineTo(x + 30, h);
+                ctx.closePath();
+                const lg = ctx.createLinearGradient(x, 0, x, h);
+                lg.addColorStop(0, 'rgba(150,220,255,0.15)');
+                lg.addColorStop(1, 'rgba(150,220,255,0)');
+                ctx.fillStyle = lg;
+                ctx.fill();
+            }
+            
+            // 气泡
+            for (let i = 0; i < 40; i++) {
+                const x = Math.random() * w;
+                const y = Math.random() * h;
+                const r = Math.random() * 8 + 2;
+                ctx.beginPath();
+                ctx.arc(x, y, r, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(200,240,255,0.3)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+            
+            // 鱼群
+            for (let g = 0; g < 3; g++) {
+                const gx = Math.random() * w;
+                const gy = Math.random() * h * 0.6 + h * 0.2;
+                const dir = Math.random() > 0.5 ? 1 : -1;
+                for (let i = 0; i < 8; i++) {
+                    const fx = gx + i * 25 * dir;
+                    const fy = gy + Math.sin(i * 0.5) * 20;
+                    ctx.save();
+                    ctx.translate(fx, fy);
+                    ctx.scale(dir, 1);
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, 15, 8, 0, 0, Math.PI * 2);
+                    ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,180,100,0.6)' : 'rgba(255,220,150,0.5)';
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.moveTo(12, 0);
+                    ctx.lineTo(22, -8);
+                    ctx.lineTo(22, 8);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+        }
+        
+        function drawForest(w, h) {
+            // 森林背景
+            const grad = ctx.createLinearGradient(0, 0, 0, h);
+            grad.addColorStop(0, '#1a2f1a');
+            grad.addColorStop(0.3, '#0d1f0d');
+            grad.addColorStop(0.6, '#0a1a0a');
+            grad.addColorStop(1, '#051005');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, w, h);
+            
+            // 光斑
+            for (let i = 0; i < 30; i++) {
+                const x = Math.random() * w;
+                const y = Math.random() * h;
+                const r = Math.random() * 30 + 10;
+                ctx.beginPath();
+                ctx.arc(x, y, r, 0, Math.PI * 2);
+                const sg = ctx.createRadialGradient(x, y, 0, x, y, r);
+                sg.addColorStop(0, 'rgba(200,255,200,0.15)');
+                sg.addColorStop(1, 'rgba(200,255,200,0)');
+                ctx.fillStyle = sg;
+                ctx.fill();
+            }
+            
+            // 树
+            const drawTree = (x, y, s) => {
+                ctx.fillStyle = '#1a0f0a';
+                ctx.fillRect(x - s * 0.1, y, s * 0.2, s * 0.5);
+                ctx.fillStyle = '#0f200f';
+                ctx.beginPath();
+                ctx.moveTo(x, y - s);
+                ctx.lineTo(x - s * 0.6, y);
+                ctx.lineTo(x + s * 0.6, y);
+                ctx.closePath();
+                ctx.fill();
+            };
+            
+            for (let i = 0; i < 8; i++) {
+                const x = Math.random() * w;
+                const s = Math.random() * 150 + 100;
+                drawTree(x, h, s);
+            }
+            
+            // 萤火虫
+            for (let i = 0; i < 25; i++) {
+                const x = Math.random() * w;
+                const y = Math.random() * h;
+                ctx.beginPath();
+                ctx.arc(x, y, 2, 0, Math.PI * 2);
+                const flicker = 0.3 + Math.sin(Date.now() * 0.005 + i) * 0.3;
+                ctx.fillStyle = `rgba(150,255,100,${flicker})`;
+                ctx.fill();
+            }
+        }
+        
+        function update() {
+            const elapsed = Math.floor((Date.now() / 1000) % 60);
+            document.getElementById('timer').textContent = `下一张: ${60 - elapsed}s`;
+            
+            if (elapsed === 0) {
+                currentTheme = (currentTheme + 1) % themes.length;
+                draw();
+            }
+        }
+        
+        window.addEventListener('resize', resize);
+        document.getElementById('refresh').addEventListener('click', () => {
+            currentTheme = (currentTheme + 1) % themes.length;
+            draw();
+        });
+        document.getElementById('refresh').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            currentTheme = (currentTheme + 1) % themes.length;
+            draw();
+        });
+        
+        resize();
+        setInterval(update, 1000);
+    </script>
+</body>
+</html>
