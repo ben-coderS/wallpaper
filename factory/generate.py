@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-"""壁纸工厂：调用 Agnes 图像 API 生成新壁纸，并把 index.html 更新为最新 16 张。
+"""壁纸工厂：按日期从风格库轮换 4 个风格，调用 Agnes 图像 API 生成新壁纸，
+并把 index.html 更新为最新 16 张。
 
-API key 从本机凭据文件读取，绝不写入仓库。生成结果保存到 img/，
-index.html 中的 masonry 区块与 JS images 数组按文件修改时间倒序重建。
+API key 从本机凭据文件读取，绝不写入仓库。风格提示词存放在独立的
+factory/styles.json 中，按 YYYYMMDD 日期整数每天轮换 4 个互不重复的风格，
+同一天多次运行结果一致。生成结果保存到 img/，index.html 中的 masonry
+区块与 JS images 数组按文件修改时间倒序重建。
 
 用法见 factory/README.md。
 """
@@ -20,7 +23,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
-from datetime import datetime
+from datetime import date, datetime
 from html import escape, unescape
 from pathlib import Path
 
@@ -28,7 +31,7 @@ FACTORY_DIR = Path(__file__).resolve().parent
 REPO_ROOT = FACTORY_DIR.parent
 IMG_DIR = REPO_ROOT / "img"
 INDEX_PATH = REPO_ROOT / "index.html"
-PROMPTS_PATH = FACTORY_DIR / "prompts.json"
+STYLES_PATH = FACTORY_DIR / "styles.json"
 DEFAULT_CREDENTIALS = Path("C:/Users/1/.dsh/.credentials.yaml")
 
 API_URL = "https://apihub.agnes-ai.com/v1/images/generations"
@@ -56,7 +59,7 @@ def log(message: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# 凭据与提示词
+# 凭据与风格库
 # ---------------------------------------------------------------------------
 
 def read_api_key(path: Path) -> str:
@@ -78,39 +81,57 @@ def read_api_key(path: Path) -> str:
     raise FatalError(f"凭据文件中没有找到 AGNES_API_KEY：{path}")
 
 
-def load_prompts() -> list[dict]:
-    if not PROMPTS_PATH.is_file():
-        raise FatalError(f"提示词文件不存在：{PROMPTS_PATH}")
+def load_styles() -> list[dict]:
+    """读取并校验 factory/styles.json；每条风格包含非空的 name 与 prompt。"""
+    if not STYLES_PATH.is_file():
+        raise FatalError(f"风格库不存在：{STYLES_PATH}")
     try:
-        prompts = json.loads(PROMPTS_PATH.read_text(encoding="utf-8"))
+        styles = json.loads(STYLES_PATH.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
-        raise FatalError(f"prompts.json 不是合法 JSON：{exc}") from exc
+        raise FatalError(f"styles.json 不是合法 JSON：{exc}") from exc
 
-    if not isinstance(prompts, list) or not prompts:
-        raise FatalError("prompts.json 必须是非空数组")
+    if not isinstance(styles, list) or not styles:
+        raise FatalError("styles.json 必须是非空数组")
 
-    for index, item in enumerate(prompts, 1):
+    seen: set[str] = set()
+    for index, item in enumerate(styles, 1):
         if not isinstance(item, dict):
-            raise FatalError(f"prompts.json 第 {index} 项必须是对象")
-        for field in ("slug", "title", "prompt"):
+            raise FatalError(f"styles.json 第 {index} 项必须是对象")
+        for field in ("name", "prompt"):
             value = item.get(field)
             if not isinstance(value, str) or not value.strip():
-                raise FatalError(f"prompts.json 第 {index} 项缺少 {field}")
-        if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", item["slug"]):
+                raise FatalError(f"styles.json 第 {index} 项缺少 {field}")
+        name = item["name"].strip()
+        if name in seen:
+            raise FatalError(f"styles.json 第 {index} 项风格名重复：{name}")
+        if re.search(r'[\\/:*?"<>|]', name):
             raise FatalError(
-                f"prompts.json 第 {index} 项 slug 只能包含小写字母、数字和连字符"
+                f"styles.json 第 {index} 项风格名不能包含路径或文件名非法字符：{name}"
             )
-    return prompts
+        seen.add(name)
+        item["name"] = name
+        item["prompt"] = item["prompt"].strip()
+    return styles
 
 
-def pick_prompts(prompts: list[dict], count: int) -> list[dict]:
-    """随机抽取 count 个提示词；数量超过库容量时循环使用，避免连续重复。"""
-    picked: list[dict] = []
-    while len(picked) < count:
-        batch = prompts[:]
-        random.shuffle(batch)
-        picked.extend(batch)
-    return picked[:count]
+def select_styles(styles: list[dict], day: date, count: int) -> list[dict]:
+    """按日历日期轮换风格库，选出 count 个互不重复的风格。
+
+    每天在风格库上的起点前进一位（date.toordinal），所以只要 count 小于
+    风格库条目数，相邻两天选中的组合就一定不同；YYYYMMDD 整数同时作为随机
+    种子，决定当天风格的展示顺序。同一日期多次运行结果一致。
+    """
+    if count < 1:
+        raise FatalError("风格数量必须大于等于 1")
+    if count > len(styles):
+        raise FatalError(
+            f"风格库只有 {len(styles)} 个风格，无法选出 {count} 个互不重复的风格"
+        )
+    seed = int(day.strftime("%Y%m%d"))
+    start = day.toordinal() % len(styles)
+    picked = [styles[(start + offset) % len(styles)] for offset in range(count)]
+    random.Random(seed).shuffle(picked)
+    return picked
 
 
 # ---------------------------------------------------------------------------
@@ -287,9 +308,9 @@ def save_as_jpeg(raw: bytes, destination: Path) -> tuple[int, int]:
     return width, height
 
 
-def build_image_path(slug: str) -> Path:
+def build_image_path(style_name: str) -> Path:
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    base = f"{stamp}-{slug}"
+    base = f"{stamp}-{style_name}"
     candidate = IMG_DIR / f"{base}.jpg"
     suffix = 2
     while candidate.exists():
@@ -312,39 +333,39 @@ def collect_gallery() -> list[Path]:
     return files[:GALLERY_SIZE]
 
 
-def build_title_map(prompts: list[dict], html_text: str) -> dict[str, str]:
-    """提示词 slug -> 中文标题；同时保留 index.html 里已有图片的 alt 标题。"""
-    titles = {item["slug"]: item["title"] for item in prompts}
+def build_title_map(styles: list[dict], html_text: str) -> dict[str, str]:
+    """风格名映射表；同时保留 index.html 里已有图片的 alt 标题。"""
+    titles = {item["name"]: item["name"] for item in styles}
     for name, alt in EXISTING_IMG_RE.findall(html_text):
         titles.setdefault(name, unescape(alt))
     return titles
 
 
-def title_for(name: str, prompts: list[dict], titles: dict[str, str]) -> str:
+def title_for(name: str, styles: list[dict], titles: dict[str, str]) -> str:
     if name in titles:
         return titles[name]
 
     stem = Path(name).stem
-    slug = next(
+    style_name = next(
         (
-            item["slug"]
-            for item in sorted(prompts, key=lambda p: len(p["slug"]), reverse=True)
-            if stem.endswith("-" + item["slug"])
+            item["name"]
+            for item in sorted(styles, key=lambda s: len(s["name"]), reverse=True)
+            if stem.endswith("-" + item["name"])
         ),
         None,
     )
-    if slug:
-        return titles[slug]
+    if style_name:
+        return style_name
 
     match = re.match(r"^\d{8}-\d{6}-(.+)$", stem)
     label = match.group(1) if match else stem
     return label.replace("-", " ").replace("_", " ").title()
 
 
-def render_masonry(files: list[Path], prompts: list[dict], titles: dict[str, str]) -> str:
+def render_masonry(files: list[Path], styles: list[dict], titles: dict[str, str]) -> str:
     entries = []
     for index, path in enumerate(files):
-        title = title_for(path.name, prompts, titles)
+        title = title_for(path.name, styles, titles)
         entries.append(
             f'        <div class="item" onclick="openViewer({index})">\n'
             f'            <img src="img/{path.name}" alt="{escape(title, quote=True)}">\n'
@@ -358,10 +379,10 @@ def js_string(value: str) -> str:
     return value.replace("\\", "\\\\").replace("'", "\\'")
 
 
-def render_images_js(files: list[Path], prompts: list[dict], titles: dict[str, str]) -> str:
+def render_images_js(files: list[Path], styles: list[dict], titles: dict[str, str]) -> str:
     entries = []
     for path in files:
-        title = title_for(path.name, prompts, titles)
+        title = title_for(path.name, styles, titles)
         entries.append(
             f"            {{ src: 'img/{js_string(path.name)}', "
             f"title: '{js_string(title)}' }},"
@@ -369,7 +390,7 @@ def render_images_js(files: list[Path], prompts: list[dict], titles: dict[str, s
     return "\n".join(entries)
 
 
-def rebuild_index(prompts: list[dict]) -> list[Path]:
+def rebuild_index(styles: list[dict]) -> list[Path]:
     if not IMG_DIR.is_dir():
         raise FatalError(f"图片目录不存在：{IMG_DIR}")
     files = collect_gallery()
@@ -386,9 +407,9 @@ def rebuild_index(prompts: list[dict]) -> list[Path]:
     if not IMAGES_JS_RE.search(html_text):
         raise FatalError("index.html 中找不到 JS images 数组（结构可能已变化）")
 
-    titles = build_title_map(prompts, html_text)
-    masonry = render_masonry(files, prompts, titles)
-    images_js = render_images_js(files, prompts, titles)
+    titles = build_title_map(styles, html_text)
+    masonry = render_masonry(files, styles, titles)
+    images_js = render_images_js(files, styles, titles)
 
     new_html = MASONRY_RE.sub(
         lambda match: match.group(1) + masonry + match.group(3),
@@ -419,12 +440,36 @@ def rebuild_index(prompts: list[dict]) -> list[Path]:
 # CLI
 # ---------------------------------------------------------------------------
 
+def parse_day(value: str) -> date:
+    """把 YYYYMMDD 解析为 date；非法日期由 argparse 直接报错。"""
+    if not re.fullmatch(r"\d{8}", value):
+        raise argparse.ArgumentTypeError("日期格式应为 YYYYMMDD，例如 20261103")
+    try:
+        return datetime.strptime(value, "%Y%m%d").date()
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(f"不是有效日期：{value}") from exc
+
+
+def print_dry_run(day: date, selected: list[dict]) -> None:
+    """只打印当天选中的风格名与提示词，不触发任何 API 调用。"""
+    log(f"{day.strftime('%Y%m%d')} 选中的 {len(selected)} 个风格（--dry-run，不调用 API、不生成图片）：")
+    for index, item in enumerate(selected, 1):
+        log(f"{index}. {item['name']}")
+        log(f"   {item['prompt']}")
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="调用 Agnes 生成壁纸，并把 index.html 更新为最新 16 张。"
+        description="按日期风格轮换调用 Agnes 生成壁纸，并把 index.html 更新为最新 16 张。"
     )
     parser.add_argument(
         "--count", type=int, default=4, help="本次生成的图片数量，默认 4"
+    )
+    parser.add_argument(
+        "--date",
+        type=parse_day,
+        default=None,
+        help="覆盖轮换日期（YYYYMMDD），默认今天；同一天结果可重现",
     )
     parser.add_argument(
         "--interval",
@@ -441,6 +486,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="凭据文件路径，默认 C:/Users/1/.dsh/.credentials.yaml",
     )
     parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="只打印当天选中的风格名与提示词，不调用 API、不生成图片",
+    )
+    parser.add_argument(
         "--rebuild-only",
         action="store_true",
         help="不调用 API，只按 img/ 文件修改时间重建 index.html",
@@ -450,21 +500,44 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         parser.error("--count 必须大于等于 1")
     if args.interval < 0:
         parser.error("--interval 不能为负数")
+    if args.dry_run and args.rebuild_only:
+        parser.error("--dry-run 与 --rebuild-only 不能同时使用")
     return args
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    prompts = load_prompts()
+    day = args.date or date.today()
+
+    try:
+        styles = load_styles()
+    except FatalError as exc:
+        log(f"无法读取风格库：{exc}")
+        return 1
+
+    if args.dry_run:
+        try:
+            selected = select_styles(styles, day, args.count)
+        except FatalError as exc:
+            log(f"无法选择风格：{exc}")
+            return 1
+        print_dry_run(day, selected)
+        return 0
 
     if args.rebuild_only:
         try:
-            files = rebuild_index(prompts)
+            files = rebuild_index(styles)
         except FatalError as exc:
             log(f"重建失败：{exc}")
             return 1
         log(f"已按最新文件重建 index.html，共 {len(files)} 张")
         return 0
+
+    try:
+        selected = select_styles(styles, day, args.count)
+    except FatalError as exc:
+        log(f"无法选择风格：{exc}")
+        return 1
 
     try:
         ensure_pillow()
@@ -473,18 +546,20 @@ def main(argv: list[str] | None = None) -> int:
         log(f"无法开始生成：{exc}")
         return 1
 
-    selected = pick_prompts(prompts, args.count)
     saved: list[Path] = []
-    log(f"开始生成 {len(selected)} 张壁纸，模型 {MODEL}，串行请求间隔 {args.interval:g} 秒")
+    log(
+        f"开始生成 {len(selected)} 张壁纸（{day.strftime('%Y%m%d')} 轮换），"
+        f"模型 {MODEL}，串行请求间隔 {args.interval:g} 秒"
+    )
 
     try:
         for index, item in enumerate(selected, 1):
             if index > 1:
                 time.sleep(args.interval)
-            log(f"[{index}/{len(selected)}] {item['title']}：{item['slug']}")
+            log(f"[{index}/{len(selected)}] {item['name']}")
             payload = request_generation(api_key, item["prompt"], args.size, args.interval)
             raw, source = extract_image_bytes(payload)
-            destination = build_image_path(item["slug"])
+            destination = build_image_path(item["name"])
             width, height = save_as_jpeg(raw, destination)
             saved.append(destination)
             log(
@@ -505,7 +580,7 @@ def main(argv: list[str] | None = None) -> int:
         return 130
 
     try:
-        files = rebuild_index(prompts)
+        files = rebuild_index(styles)
     except FatalError as exc:
         log(f"生成成功，但 index.html 重建失败：{exc}")
         return 1
