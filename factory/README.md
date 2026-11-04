@@ -2,13 +2,19 @@
 
 `factory/generate.py` 按 `YYYYMMDD` 日期从独立风格库 `factory/styles.json`
 轮换 4 个互不重复的风格，调用 Agnes 图像 API 生成竖版壁纸，保存到仓库的
-`img/`，并把 `index.html` 的瀑布流与 JS `images` 数组替换为**按文件修改时间
-倒序的最新 16 张**。同一天多次运行选中的风格一致，跨日自动轮换。
-站点样式与结构保持不变。
+`img/`，并重建站点页面：
+
+- `index.html`：瀑布流与 JS `images` 数组为**最新的 16 张**，并显示
+  「最后更新 <日期> · 共 N 张」和「查看全部归档」入口；
+- `archive.html`：**全量归档页**，网格展示 `img/` 下所有壁纸，点击复用全屏查看器；
+- `status.json`：每日产线状态，含最近成功时间、图片总数、最近一批文件名。
+
+同一天多次运行选中的风格一致，跨日自动轮换；站点样式与结构保持不变，
+没有任何新增依赖。
 
 ## 依赖
 
-- Python 3.9+（只用标准库发起请求）
+- Python 3.10+（只用标准库发起请求）
 - [Pillow](https://pypi.org/project/Pillow/)：API 返回 PNG，需要转成 `img/*.jpg`
 
 ```bash
@@ -42,8 +48,8 @@ python factory/generate.py --date 20261103
 # 生成 6 张（数量不能超过风格库条目数）
 python factory/generate.py --count 6
 
-# 只重建 index.html，不调用 API（本地验证/手工补图后使用）
-python factory/generate.py --rebuild-only
+# 不调用 API，只用 img/ 现有图片重建 index.html、archive.html 与 status.json
+python factory/generate.py --build-only
 ```
 
 参数：
@@ -56,7 +62,7 @@ python factory/generate.py --rebuild-only
 | `--interval` | `65` | 两次 API 请求之间的等待秒数；免费档约 1 请求/分钟 |
 | `--size` | `1024x1536` | 请求的尺寸（实际输出尺寸以 API 返回为准） |
 | `--credentials` | `C:/Users/1/.dsh/.credentials.yaml` | 凭据文件路径 |
-| `--rebuild-only` | 关闭 | 跳过 API，只重建 `index.html` |
+| `--build-only` | 关闭 | 跳过 API，只重建三个页面产物；`--rebuild-only` 是兼容旧用法保留的别名 |
 
 ## 风格库与每日轮换
 
@@ -80,19 +86,40 @@ python factory/generate.py --rebuild-only
 - 图片：`img/<时间戳>-<风格名>.jpg`，例如 `img/20261104-120000-林深见鹿.jpg`
   - 时间戳为本地时间 `YYYYMMDD-HHMMSS`，重复运行不会覆盖旧图；
   - 已存在的图片不会被删除或修改。
-- `index.html`：只重写 masonry 区块和 JS `images` 数组，取 `img/` 下最新 16 张
-  （修改时间倒序；时间相同时按文件名倒序，保证结果稳定）。
-  - 新图的标题即 `styles.json` 的风格名；已有图片的标题从当前 `index.html`
-    的 `alt` 属性保留。
+- `index.html`：只重写 masonry 区块、JS `images` 数组和归档状态区块
+  （`archive-meta:start/end` 之间），取 `img/` 下最新 16 张。
+  - 生成图的标题即 `styles.json` 的风格名；旧站图片的标题从当前 `index.html`
+    的 `alt` 属性或 `factory/titles.json` 保留。
+- `archive.html`：`img/` 全部图片的网格归档页（2 列，宽屏自动 3/4 列）。
+  - 排序：文件名带 `YYYYMMDD-HHMMSS` 时间戳的图片按时间倒序；没有时间戳的
+    旧站图片排在后面，按文件名倒序。结果不依赖文件修改时间（克隆后 mtime 会变）。
+  - 点击任意缩略图打开与 `index.html` 相同的全屏查看器，支持上一张/下一张/保存。
+- `status.json`：
+
+  ```json
+  {
+    "last_success": "2026-11-03T23:34:18+08:00",
+    "total": 21,
+    "last_batch": ["20261103-183839-forest-deer.jpg", "..."]
+  }
+  ```
+
+  - `last_success`：最近一次成功重建页面（含 `--build-only`）的本地时间（ISO 8601）；
+  - `total`：`img/` 下壁纸总数，与 `archive.html` 的图片数量一致；
+  - `last_batch`：最近一次生图批次保存的文件名；`--build-only` 不生成新图，
+    沿用上一次记录（没有记录时为 `[]`）。
+  - 生图或重建失败时不会写入，文件保持上一次成功时的内容。
+- `factory/titles.json`：旧站图片（文件名不含时间戳/风格名）的中文标题表，
+  新增这类图片时把 `文件名 -> 标题` 加进去即可。
 
 ## 失败行为
 
-- **402（额度/付费受限）**：立即停止，不修改 `index.html`，旧站保持可用，退出码 1。
+- **402（额度/付费受限）**：立即停止，不修改页面，旧站保持可用，退出码 1。
 - **429（限流）**：按 `Retry-After` 或 `--interval` 等待后重试，最多 5 次；
-  仍失败则不修改 `index.html`，旧站保持可用，退出码 1。
-- **401/403（key 无效或无权限）**：立即停止，不修改 `index.html`。
+  仍失败则不修改页面，旧站保持可用，退出码 1。
+- **401/403（key 无效或无权限）**：立即停止，不修改页面。
 - **5xx / 网络错误**：指数退避重试，最多 5 次。
-- 批量中途失败时，已成功保存的图片会留在 `img/`，但本轮不改 `index.html`；
+- 批量中途失败时，已成功保存的图片会留在 `img/`，但本轮不改页面和 `status.json`；
   下次成功运行会自动纳入最新图片。
 
 ## 实测响应结构

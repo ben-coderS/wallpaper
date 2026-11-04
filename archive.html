@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>全部壁纸 · AI壁纸精选</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            background: #f5f5f5;
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+            min-height: 100vh;
+            padding-bottom: 32px;
+        }
+        /* 顶部标题栏 */
+        .archive-head {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: #fff;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid #eee;
+        }
+        .back-link {
+            color: #333;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+        .archive-title { font-size: 17px; font-weight: 600; flex: 1; }
+        .archive-meta {
+            padding: 10px 16px 0;
+            color: #666;
+            font-size: 13px;
+        }
+        /* 全量归档网格 */
+        .archive-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+            padding: 10px 8px 0;
+            align-items: start;
+        }
+        @media (min-width: 640px) {
+            .archive-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding: 12px; }
+        }
+        @media (min-width: 1024px) {
+            .archive-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        }
+        .grid-item {
+            border-radius: 12px;
+            overflow: hidden;
+            cursor: pointer;
+            position: relative;
+            background: #e0e0e0;
+        }
+        .grid-item img {
+            width: 100%;
+            display: block;
+            aspect-ratio: 2 / 3;
+            object-fit: cover;
+            transition: transform 0.3s;
+        }
+        .grid-item:active img { transform: scale(0.98); }
+        .grid-item .caption {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 24px 10px 8px;
+            background: linear-gradient(transparent, rgba(0,0,0,0.65));
+            color: #fff;
+            font-size: 12px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        /* 全屏查看器（复用 index.html 现有样式） */
+        .viewer {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 200;
+            flex-direction: column;
+        }
+        .viewer.show { display: flex; }
+        .viewer .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            color: #fff;
+        }
+        .viewer .close-btn {
+            width: 32px;
+            height: 32px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .viewer .img-wrap {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+        }
+        .viewer .img-wrap img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+        .viewer .bottom-bar {
+            padding: 16px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        .viewer .action-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: #fff;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .viewer .action-btn svg { width: 28px; height: 28px; }
+    </style>
+</head>
+<body>
+    <div class="archive-head">
+        <a class="back-link" href="index.html">← 返回首页</a>
+        <span class="archive-title">全部壁纸</span>
+    </div>
+
+    <p class="archive-meta">最后更新 2026-11-04 · 共 25 张</p>
+
+    <div class="archive-grid" id="archiveGrid">
+        <div class="grid-item" onclick="openViewer(0)">
+            <img src="img/20261104-080436-山脊日出.jpg" alt="山脊日出" loading="lazy">
+            <div class="caption">山脊日出</div>
+        </div>
+        <div class="grid-item" onclick="openViewer(1)">
+            <img src="img/20261104-080311-雨窗灯火.jpg" alt="雨窗灯火" loading="lazy">
+            <div class="caption">雨窗灯火</div>
+        </div>
+        <div class="grid-item" onclick="openViewer(2)">
+            <img src="img/20261104-080150-沙漠星夜.jpg" alt="沙漠星夜" loading="lazy">
+            <div class="caption">沙漠星夜</div>
+        </div>
+        <div class="grid-item" onclick="openViewer(3)">
+            <img src="img/20261104-080029-雨夜霓虹.jpg" alt="雨夜霓虹" loading="lazy">
+            <div class="caption">雨夜霓虹</div>
+        </div>
+        <div class="grid-item" onclick="openViewer(4)">
+            <img src="img/20261103-184332-cloud-sea-sunrise.jpg" alt="云海日出" loading="lazy">
+            <div class="caption">云海日出</div>
+        </div>
+        <div class="grid-item" onclick="openViewer(5)">
+            <img src="img/20261103-184259-rainy-window.jpg" alt="雨窗灯火" loading="lazy">
+            <div class="caption">雨窗灯火</div>
+        </div>
+        <div class="grid-item" onclick="openViewer(6)">
+            <img src="img/20261103-184130-cloud-whale.jpg" alt="云端鲸歌" loading="lazy">
+            <div class="caption">云端鲸歌</div>
+        </div>
+        <div class="grid-item" onclick="openViewer(7)">
+            <img src="img/20261103-184004-starry-tide.jpg" alt="星海潮汐" loading="lazy">
+            <div class="caption">星海潮汐</div>
+        </div>
+        <div class="grid-item" onclick="openViewer(8)">
+            <img src="img/20261103-183839-forest-deer.jpg" alt="林深见鹿" loading="lazy">
+            <div class="caption">林深见鹿</div>
+        </div>
+        <div class="grid-item" onclick="openViewer(9)">
+            <img src="img/zspTS0FROlw.jpg" alt="秋日森林" loading="lazy">
+            <div class="caption">秋日森林</div>
+        </div>
+        <div class="grid-item" onclick="openViewer(10)">
+            <img src="img/wFoU_7e0h8g.jpg" alt="月下少女" loading="lazy">
+            <div class="caption">月下少女</div>
+        </div>
+        <div class="grid-item" onclick="openViewer(11)">
+            <img src="img/vy2N0k9druo.jpg" alt="星空少女" loading="lazy">
+            <div class="caption">星空少女</div>
+        </div>
+        <div class="grid-item" onclick="openViewer(12)">
+            <img src="img/tkciI2C2sc8.jpg" alt="云海巨鲸" loading="lazy">
+            <div class="caption">云海巨鲸</div>
+        </div>
+        <div class="grid-item" onclick="openViewer(13)">
+            <img src="img/no-DiZ07Mzk.jpg" alt="金色溪流" loading="lazy">
+            <div class="caption">金色溪流</div>
+        </div>
+        <div class="grid-item" onclick="openViewer(14)">
+            <img src="img/dIBqyTZXBoo.jpg" alt="梦幻海岸" loading="lazy">
+            <div class="caption">梦幻海岸</div>
+        </div>
+        <div class="grid-item" onclick="openViewer(15)">
+            <img src="img/XWGy75j9Zeg.jpg" alt="月下巨鲸" loading="lazy">
+            <div class="caption">月下巨鲸</div>
+        </div>
+        <div class="grid-item" onclick="openViewer(16)">
+            <img src="img/VratoGKnfTY.jpg" alt="瀑布溪流" loading="lazy">
+            <div class="caption">瀑布溪流</div>
+        </div>
+        <div class="grid-item" onclick="openViewer(17)">
+            <img src="img/VB-kSP0cSD4.jpg" alt="鲸鱼晨曦" loading="lazy">
+            <div class="caption">鲸鱼晨曦</div>
+        </div>
+        <div class="grid-item" onclick="openViewer(18)">
+            <img src="img/PlDQPTvzang.jpg" alt="极光少女" loading="lazy">
+            <div class="caption">极光少女</div>
+        </div>
+        <div class="grid-item" onclick="openViewer(19)">
+            <img src="img/GP8smuu3onI.jpg" alt="鲸鱼少女" loading="lazy">
+            <div class="caption">鲸鱼少女</div>
+        </div>
+        <div class="grid-item" onclick="openViewer(20)">
+            <img src="img/EuVHbFjZkZ8.jpg" alt="灯塔海岸" loading="lazy">
+            <div class="caption">灯塔海岸</div>
+        </div>
+        <div class="grid-item" onclick="openViewer(21)">
+            <img src="img/BSZQOVPry68.jpg" alt="巨鲸云海" loading="lazy">
+            <div class="caption">巨鲸云海</div>
+        </div>
+        <div class="grid-item" onclick="openViewer(22)">
+            <img src="img/7L3T7zpuKlM.jpg" alt="星河海岸" loading="lazy">
+            <div class="caption">星河海岸</div>
+        </div>
+        <div class="grid-item" onclick="openViewer(23)">
+            <img src="img/5gLdODSKzJM.jpg" alt="金色树木" loading="lazy">
+            <div class="caption">金色树木</div>
+        </div>
+        <div class="grid-item" onclick="openViewer(24)">
+            <img src="img/4HcJ8lu5wS8.jpg" alt="星空海岸" loading="lazy">
+            <div class="caption">星空海岸</div>
+        </div>
+    </div>
+
+    <!-- 全屏查看器 -->
+    <div class="viewer" id="viewer">
+        <div class="top-bar">
+            <div class="close-btn" onclick="closeViewer()">✕</div>
+            <span id="imgTitle"></span>
+            <div style="width:32px"></div>
+        </div>
+        <div class="img-wrap">
+            <img id="viewerImg" src="" alt="">
+        </div>
+        <div class="bottom-bar">
+            <div class="action-btn" onclick="prevImg()">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/></svg>
+                <span>上一张</span>
+            </div>
+            <div class="action-btn" onclick="saveImg()">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z"/></svg>
+                <span>保存</span>
+            </div>
+            <div class="action-btn" onclick="nextImg()">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
+                <span>下一张</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentIndex = 0;
+        const images = [
+            { src: 'img/20261104-080436-山脊日出.jpg', title: '山脊日出' },
+            { src: 'img/20261104-080311-雨窗灯火.jpg', title: '雨窗灯火' },
+            { src: 'img/20261104-080150-沙漠星夜.jpg', title: '沙漠星夜' },
+            { src: 'img/20261104-080029-雨夜霓虹.jpg', title: '雨夜霓虹' },
+            { src: 'img/20261103-184332-cloud-sea-sunrise.jpg', title: '云海日出' },
+            { src: 'img/20261103-184259-rainy-window.jpg', title: '雨窗灯火' },
+            { src: 'img/20261103-184130-cloud-whale.jpg', title: '云端鲸歌' },
+            { src: 'img/20261103-184004-starry-tide.jpg', title: '星海潮汐' },
+            { src: 'img/20261103-183839-forest-deer.jpg', title: '林深见鹿' },
+            { src: 'img/zspTS0FROlw.jpg', title: '秋日森林' },
+            { src: 'img/wFoU_7e0h8g.jpg', title: '月下少女' },
+            { src: 'img/vy2N0k9druo.jpg', title: '星空少女' },
+            { src: 'img/tkciI2C2sc8.jpg', title: '云海巨鲸' },
+            { src: 'img/no-DiZ07Mzk.jpg', title: '金色溪流' },
+            { src: 'img/dIBqyTZXBoo.jpg', title: '梦幻海岸' },
+            { src: 'img/XWGy75j9Zeg.jpg', title: '月下巨鲸' },
+            { src: 'img/VratoGKnfTY.jpg', title: '瀑布溪流' },
+            { src: 'img/VB-kSP0cSD4.jpg', title: '鲸鱼晨曦' },
+            { src: 'img/PlDQPTvzang.jpg', title: '极光少女' },
+            { src: 'img/GP8smuu3onI.jpg', title: '鲸鱼少女' },
+            { src: 'img/EuVHbFjZkZ8.jpg', title: '灯塔海岸' },
+            { src: 'img/BSZQOVPry68.jpg', title: '巨鲸云海' },
+            { src: 'img/7L3T7zpuKlM.jpg', title: '星河海岸' },
+            { src: 'img/5gLdODSKzJM.jpg', title: '金色树木' },
+            { src: 'img/4HcJ8lu5wS8.jpg', title: '星空海岸' },
+        ];
+
+        function showImage(index) {
+            currentIndex = (index + images.length) % images.length;
+            document.getElementById('viewerImg').src = images[currentIndex].src;
+            document.getElementById('imgTitle').textContent = images[currentIndex].title;
+        }
+
+        function openViewer(index) {
+            showImage(index);
+            document.getElementById('viewer').classList.add('show');
+        }
+
+        function closeViewer() {
+            document.getElementById('viewer').classList.remove('show');
+        }
+
+        function nextImg() { showImage(currentIndex + 1); }
+
+        function prevImg() { showImage(currentIndex - 1); }
+
+        async function saveImg() {
+            const { src, title } = images[currentIndex];
+            try {
+                const resp = await fetch(src);
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                const blob = await resp.blob();
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = title + '.jpg';
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+            } catch (err) {
+                alert('保存失败，请稍后重试');
+            }
+        }
+    </script>
+</body>
+</html>
