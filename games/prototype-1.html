@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#080b12">
+<title>融资大冒险 · 创业墓地</title>
+<style>
+  :root{
+    --bg:#080b12;--card:#111827;--line:#1f2a3a;--text:#e6edf3;--dim:#8b949e;
+    --gold:#f0b429;--red:#f85149;--green:#3fb950;--blue:#58a6ff;--purple:#d2a8ff;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    overflow:hidden;user-select:none}
+  #app{height:100dvh;height:100vh;display:flex;flex-direction:column;gap:6px;
+    padding:8px 10px calc(8px + env(safe-area-inset-bottom));max-width:480px;margin:0 auto}
+  header{flex:0 0 auto}
+  .topline{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .brand{font-size:16px;font-weight:800;letter-spacing:.5px;white-space:nowrap}
+  .brand small{font-size:10px;color:var(--dim);font-weight:500;margin-left:4px}
+  .level-pill{font-size:11px;font-weight:700;color:#0b1020;background:var(--gold);
+    border-radius:999px;padding:4px 10px;white-space:nowrap}
+  .hud{display:grid;grid-template-columns:1.25fr 1fr 1fr 1fr;gap:6px;margin-top:6px}
+  .hud-cell{background:#0d1421;border:1px solid var(--line);border-radius:10px;padding:5px 7px;min-width:0}
+  .hud-cell .k{font-size:9px;color:var(--dim);letter-spacing:.5px}
+  .hud-cell .v{font-size:14px;font-weight:800;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hud-cell .v.gold{color:var(--gold)}
+  .bar{height:3px;background:#1f2a3a;border-radius:2px;margin-top:3px;overflow:hidden}
+  .bar i{display:block;height:100%;width:100%;background:var(--green);border-radius:2px;transition:width .15s linear}
+  #stageWrap{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;position:relative}
+  canvas{display:block;border-radius:16px;touch-action:none;background:#0a0f18;
+    box-shadow:0 12px 40px rgba(0,0,0,.55),0 0 0 1px #1a2333 inset}
+  #toast{position:absolute;left:50%;top:10px;transform:translate(-50%,-10px);opacity:0;
+    background:rgba(13,20,33,.95);border:1px solid #2a3a52;color:var(--text);
+    font-size:12px;font-weight:700;padding:7px 12px;border-radius:999px;pointer-events:none;
+    transition:opacity .2s,transform .2s;white-space:nowrap;max-width:92%;overflow:hidden;text-overflow:ellipsis;z-index:5}
+  #toast.show{opacity:1;transform:translate(-50%,0)}
+  footer{flex:0 0 auto}
+  .hint{font-size:11px;color:var(--dim);text-align:center;line-height:1.5;min-height:17px}
+  .hint b{color:var(--gold)}
+  .actions{display:flex;gap:8px;margin-top:5px}
+  .btn{border:none;border-radius:11px;padding:10px 14px;font-size:13px;font-weight:800;
+    color:#0b1020;background:var(--gold);cursor:pointer;flex:1;transition:transform .1s,opacity .15s}
+  .btn:active{transform:scale(.97)}
+  .btn:disabled{opacity:.38;cursor:default}
+  .btn.ghost{background:#151f2e;color:var(--text);border:1px solid #2a3a52}
+  .btn.danger{background:var(--red);color:#fff}
+  .btn.blue{background:var(--blue);color:#06101f}
+  .btn.small{flex:0 0 auto;padding:10px 12px;font-size:12px}
+  .hidden{display:none!important}
+  .modal{position:fixed;inset:0;background:rgba(2,5,10,.78);backdrop-filter:blur(5px);
+    display:flex;align-items:center;justify-content:center;padding:18px;z-index:20}
+  .modal-card{width:100%;max-width:400px;max-height:86dvh;overflow:auto;background:
+    linear-gradient(180deg,#121b2b,#0b111c);border:1px solid #26344a;border-radius:18px;
+    padding:18px;box-shadow:0 24px 80px rgba(0,0,0,.7)}
+  .modal-tag{font-size:10px;letter-spacing:1.5px;color:var(--gold);text-transform:uppercase;margin-bottom:5px}
+  .modal-card h2{font-size:21px;margin:0 0 8px;line-height:1.25}
+  .modal-card p{font-size:13px;line-height:1.65;color:#b8c3d1;margin:0 0 10px}
+  .modal-card p.story{color:#d6dee8}
+  .rulebox{background:#0a1220;border:1px solid #223148;border-radius:12px;padding:10px 12px;
+    font-size:12px;line-height:1.6;color:#aab7c8;margin:10px 0}
+  .rulebox b{color:var(--gold)}
+  .target{font-size:13px;font-weight:700;margin:10px 0 4px}
+  .target b{color:var(--gold)}
+  .modal-card .btn{margin-top:12px;width:100%}
+  .modal-card .row{display:flex;gap:8px;margin-top:10px}
+  .modal-card .row .btn{margin-top:0}
+  .meta{font-size:11px;color:var(--dim);text-align:center;margin-top:10px;line-height:1.6}
+  .statline{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+  .statline span{background:#0b1422;border:1px solid #223148;border-radius:8px;
+    padding:5px 8px;font-size:11px;color:#c7d2df}
+  .statline b{color:var(--gold)}
+  .ach{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 2px}
+  .ach span{background:#16202f;border:1px solid #31435c;color:#ffd56b;border-radius:999px;
+    padding:4px 9px;font-size:11px;font-weight:700}
+  .big-score{font-size:36px;font-weight:900;letter-spacing:1px;text-align:center;margin:6px 0 0;color:var(--gold)}
+  .big-score.red{color:var(--red)}
+  .center{text-align:center}
+  .share-tip{font-size:10px;color:var(--dim);text-align:center;margin-top:10px;line-height:1.5}
+  @media (max-height:680px){
+    .brand{font-size:14px}.hud-cell .v{font-size:12px}.hud-cell{padding:4px 6px}
+    .hint{font-size:10px}.btn{padding:9px 10px;font-size:12px}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="topline">
+      <div class="brand">💀 融资大冒险 <small>创业墓地</small></div>
+      <div class="level-pill" id="levelPill">第 1 / 3 关</div>
+    </div>
+    <div class="hud">
+      <div class="hud-cell">
+        <div class="k">现金</div><div class="v" id="cashV">100</div>
+        <div class="bar"><i id="cashBar"></i></div>
+      </div>
+      <div class="hud-cell"><div class="k">得分</div><div class="v gold" id="scoreV">0</div></div>
+      <div class="hud-cell"><div class="k">目标</div><div class="v" id="targetV">💰收入</div></div>
+      <div class="hud-cell"><div class="k">剩余</div><div class="v" id="timeV">90s</div></div>
+    </div>
+  </header>
+
+  <div id="stageWrap">
+    <canvas id="game"></canvas>
+    <div id="toast"></div>
+  </div>
+
+  <footer>
+    <div class="hint" id="hint">按住瞄准 · 松手投放 · 同级自动合并</div>
+    <div class="actions">
+      <button class="btn ghost" id="bridgeBtn" disabled>桥接轮 +40</button>
+      <button class="btn danger hidden" id="allinBtn">ALL IN</button>
+    </div>
+  </footer>
+</div>
+
+<div class="modal hidden" id="modal">
+  <div class="modal-card" id="modalCard"></div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ---------- 基础常量 ----------
+  const W = 360, H = 520, DANGER_Y = 88, GRAVITY = 1150;
+  const RES = [
+    {name:'想法', icon:'💡', r:15, color:'#9aa4b2'},
+    {name:'原型', icon:'🧩', r:18, color:'#58a6ff'},
+    {name:'用户', icon:'👥', r:22, color:'#3fb950'},
+    {name:'收入', icon:'💰', r:27, color:'#f0b429'},
+    {name:'团队', icon:'🧑‍💻', r:33, color:'#d2a8ff'},
+    {name:'城市', icon:'🏙️', r:40, color:'#ff7b72'},
+    {name:'IPO',  icon:'🔔', r:49, color:'#ffd700'},
+  ];
+  const LEVELS = [
+    {
+      title:'种子轮', company:'Homejoy · 2012', target:3,
+      cash:100, burn:0, time:90,
+      story:'你是一家共享家政平台的创始人。天使轮 $1.7M 到账，投资人只留下一句话：先证明有人愿意为这件事付钱。',
+      rules:'合出 <b>💰 收入</b> = 验证 PMF，本关即过关。每次投放消耗 1 点现金。',
+      win:'你没有急着扩张城市，而是先合出了收入。Homejoy 后来在没验证付费模型时激进扩张城市，服务成本击穿毛利，2015 年关停。',
+      lose:'Homejoy 的教训：没有验证付费就扩张，融资只是把死亡推迟了 18 个月。'
+    },
+    {
+      title:'A 轮', company:'WeWork · 2016', target:5,
+      cash:80, burn:0.35, time:120,
+      story:'A 轮之后，投资人要增长。账上现金 80，固定成本每秒都在烧。市场部递来一份“城市扩张”计划。',
+      rules:'合出 <b>🏙️ 城市</b> 拿 B 轮。合出团队/城市会提高固定 burn。<br>现金 &lt; 35 时可点 <b>桥接轮</b>：+40 现金，但 burn +50%、分数 -200，最多 2 次。',
+      win:'你在收入之后才扩张，拿到了 B 轮。WeWork 没有：它用科技公司的估值做地产，2019 年上市失败，2023 年申请破产。',
+      lose:'过早扩张杀死现金流。WeWork 的固定成本在收入之前就锁死了，融资续命只能买时间。'
+    },
+    {
+      title:'终局', company:'WeWork / Jawbone · 2023', target:6,
+      cash:60, burn:0.9, time:150,
+      story:'账上只剩 60，固定成本每秒 0.9。董事会说：要么 IPO，要么清算。这是最后一局。',
+      rules:'合出 <b>🔔 IPO</b> 即通关。每 12 秒开启 5 秒<b>市场窗口</b>，合并得分 ×2。<br><b>ALL IN</b>：花 25 现金直接丢下一个「团队」，只有一次——可能救命，也可能压垮你。',
+      win:'你在现金烧完前 IPO 了。现实中 WeWork 没做到；Jawbone 把最后的钱押在 UP4 上，2017 年清算。最后一跳，往往不是最用力的那一跳。',
+      lose:'最后一跳失败。融资续命买不到需求，ALL IN 也买不到时间。'
+    }
+  ];
+  const ACH = {
+    firstwin:{n:'第一次过关', d:'通关任意一关'},
+    nobridge:{n:'不靠续命', d:'零桥接轮过关'},
+    combo5:{n:'五连合', d:'单次连锁达到 5'},
+    speed:{n:'90 秒先生', d:'45 秒内通关第 1 关'},
+    ipo:{n:'IPO 幸存者', d:'通关第 3 关'},
+    nogamble:{n:'不赌', d:'不用 ALL IN 通关第 3 关'},
+  };
+  const LS_BEST = 'gg_merge_best_v1';
+  const LS_ACH = 'gg_merge_ach_v1';
+
+  // ---------- DOM ----------
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const stageWrap = document.getElementById('stageWrap');
+  const cashV = document.getElementById('cashV');
+  const scoreV = document.getElementById('scoreV');
+  const targetV = document.getElementById('targetV');
+  const timeV = document.getElementById('timeV');
+  const cashBar = document.getElementById('cashBar');
+  const levelPill = document.getElementById('levelPill');
+  const hint = document.getElementById('hint');
+  const bridgeBtn = document.getElementById('bridgeBtn');
+  const allinBtn = document.getElementById('allinBtn');
+  const modal = document.getElementById('modal');
+  const modalCard = document.getElementById('modalCard');
+  const toastEl = document.getElementById('toast');
+
+  // ---------- 状态 ----------
+  let state = 'menu';          // menu | playing | levelclear | over | win
+  let levelIndex = 0;
+  let bodies = [];
+  let particles = [];
+  let cash = 0, score = 0, timeLeft = 0, burn = 0, targetLevel = 3;
+  let aimX = W / 2, dragging = false, pointerInside = false;
+  let nextLevel = 0, nextNext = 0;
+  let lastDrop = 0, combo = 0, lastMerge = 0;
+  let bridgeUsed = 0, allinUsed = false, allinFlash = 0;
+  let dangerTimer = 0, shake = 0;
+  let marketWindow = false, marketTimer = 0;
+  let levelStartMs = 0;
+  let runAch = new Set();
+  let best = Number(localStorage.getItem(LS_BEST) || 0);
+  let knownAch = loadAch();
+  let lastHudMs = 0;
+  let toastTimer = 0;
+
+  // ---------- 尺寸 ----------
+  function fit() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = stageWrap.clientWidth, h = stageWrap.clientHeight;
+    if (!w || !h) return;
+    const scale = Math.min(w / W, h / H);
+    canvas.style.width = Math.floor(W * scale) + 'px';
+    canvas.style.height = Math.floor(H * scale) + 'px';
+    canvas.width = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    draw();
+  }
+  window.addEventListener('resize', fit);
+  window.addEventListener('orientationchange', () => setTimeout(fit, 120));
+
+  // ---------- 工具 ----------
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const fmt = (n) => Math.floor(n).toLocaleString('en-US');
+  function loadAch() {
+    try { return new Set(JSON.parse(localStorage.getItem(LS_ACH) || '[]')); }
+    catch { return new Set(); }
+  }
+  function saveAch() {
+    try { localStorage.setItem(LS_ACH, JSON.stringify([...knownAch])); } catch {}
+  }
+  function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1700);
+  }
+  function unlock(id) {
+    if (!ACH[id] || runAch.has(id)) return;
+    runAch.add(id);
+    if (!knownAch.has(id)) { knownAch.add(id); saveAch(); toast('🏆 成就解锁：' + ACH[id].n); }
+  }
+
+  // ---------- 关卡 ----------
+  function setupLevel(i) {
+    levelIndex = i;
+    const cfg = LEVELS[i];
+    cash = cfg.cash;
+    burn = cfg.burn;
+    timeLeft = cfg.time;
+    targetLevel = cfg.target;
+    bodies = [];
+    particles = [];
+    combo = 0; lastMerge = 0; bridgeUsed = 0; allinUsed = false;
+    dangerTimer = 0; shake = 0;
+    marketWindow = false; marketTimer = 0;
+    nextLevel = pickDropLevel(i);
+    nextNext = pickDropLevel(i);
+    aimX = W / 2;
+    levelStartMs = performance.now();
+    bridgeBtn.disabled = true;
+    bridgeBtn.textContent = '桥接轮 +40';
+    allinBtn.classList.toggle('hidden', i !== 2);
+    allinBtn.disabled = i !== 2;
+    levelPill.textContent = `第 ${i + 1} / 3 关`;
+    updateHud(true);
+    draw();
+  }
+
+  function pickDropLevel(i) {
+    const table = i === 0
+      ? [[0, 0.58], [1, 0.42]]
+      : i === 1
+        ? [[0, 0.38], [1, 0.40], [2, 0.22]]
+        : [[0, 0.28], [1, 0.34], [2, 0.28], [3, 0.10]];
+    let r = Math.random();
+    for (const [lv, p] of table) { if ((r -= p) <= 0) return lv; }
+    return 0;
+  }
+
+  function startRun() {
+    score = 0;
+    runAch = new Set();
+    setupLevel(0);
+    showIntro();
+  }
+
+  function beginLevel() {
+    state = 'playing';
+    hideModal();
+    levelStartMs = performance.now();
+    lastDrop = performance.now() - 400;
+    toast('投放开始');
+  }
+
+  // ---------- 物理 ----------
+  function addBody(level, x, y, vx, vy) {
+    const b = { x, y, vx: vx || 0, vy: vy || 0, r: RES[level].r, level,
+      age: 0, mergeCd: 0.12, dead: false };
+    bodies.push(b);
+    return b;
+  }
+
+  function drop(x) {
+    if (state !== 'playing') return;
+    const now = performance.now();
+    if (now - lastDrop < 300) return;
+    if (cash < 1) { lose('现金归零'); return; }
+    lastDrop = now;
+    cash -= 1;
+    const lv = nextLevel;
+    nextLevel = nextNext;
+    nextNext = pickDropLevel(levelIndex);
+    const r = RES[lv].r;
+    addBody(lv, clamp(x, r + 2, W - r - 2), 30, 0, 0);
+    updateHud(true);
+  }
+
+  function doMerge(a, b) {
+    if (a.dead || b.dead) return;
+    a.dead = true; b.dead = true;
+    const lv = a.level + 1;
+    if (lv >= RES.length) return;
+    const x = (a.x + b.x) / 2, y = (a.y + b.y) / 2;
+    addBody(lv, x, y, (a.vx + b.vx) * 0.18, Math.min(-55, (a.vy + b.vy) * 0.18));
+    const now = performance.now();
+    combo = (now - lastMerge < 1400) ? combo + 1 : 1;
+    lastMerge = now;
+    const mult = marketWindow ? 2 : 1;
+    const gain = Math.round((lv + 1) * 10 * combo * mult);
+    score += gain;
+    cash += Math.max(1, lv);
+    spawnParticles(x, y, RES[lv].color, 10 + Math.min(12, combo * 2));
+    shake = Math.min(9, shake + 3 + combo);
+    if (combo >= 2) toast(`连合 ×${combo}  +${gain}`);
+    if (combo >= 5) unlock('combo5');
+    // 过早扩张：在第 2 关，团队/城市每合并一次，固定成本就抬高一档
+    if (levelIndex === 1 && lv >= 4) {
+      burn += 0.08;
+      toast(`🏙️ 固定成本 +0.08/s（burn ${burn.toFixed(2)}/s）`);
+    }
+    if (lv === 6) allinFlash = 1;
+    if (lv >= targetLevel) clearLevel();
+    updateHud(true);
+  }
+
+  function resolveCollision(a, b, dx, dy, d) {
+    if (d <= 0.0001) { dx = Math.random() - 0.5; dy = -1; d = 0.5; }
+    const nx = dx / d, ny = dy / d;
+    const overlap = a.r + b.r - d;
+    if (overlap <= 0) return;
+    const ma = a.r * a.r, mb = b.r * b.r, total = ma + mb;
+    const pushA = overlap * (mb / total), pushB = overlap * (ma / total);
+    a.x -= nx * pushA; a.y -= ny * pushA;
+    b.x += nx * pushB; b.y += ny * pushB;
+    const rvx = b.vx - a.vx, rvy = b.vy - a.vy;
+    const vn = rvx * nx + rvy * ny;
+    if (vn < 0) {
+      const e = 0.12;
+      const j = -(1 + e) * vn / (1 / ma + 1 / mb);
+      a.vx -= (j * nx) / ma; a.vy -= (j * ny) / ma;
+      b.vx += (j * nx) / mb; b.vy += (j * ny) / mb;
+    }
+  }
+
+  function physics(dt) {
+    for (const b of bodies) {
+      b.vy += GRAVITY * dt;
+      b.vx *= 0.999;
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.age += dt;
+      b.mergeCd -= dt;
+    }
+    for (let iter = 0; iter < 4; iter++) {
+      for (let i = 0; i < bodies.length; i++) {
+        const a = bodies[i];
+        if (a.dead) continue;
+        for (let j = i + 1; j < bodies.length; j++) {
+          const b = bodies[j];
+          if (b.dead) continue;
+          const dx = b.x - a.x, dy = b.y - a.y;
+          const d = Math.hypot(dx, dy);
+          if (d >= a.r + b.r) continue;
+          if (a.level === b.level && a.mergeCd <= 0 && b.mergeCd <= 0 && a.age > 0.04 && b.age > 0.04) {
+            doMerge(a, b);
+          } else {
+            resolveCollision(a, b, dx, dy, d);
+          }
+        }
+      }
+      for (const b of bodies) {
+        if (b.dead) continue;
+        if (b.x - b.r < 0) { b.x = b.r; b.vx = Math.abs(b.vx) * 0.35; }
+        if (b.x + b.r > W) { b.x = W - b.r; b.vx = -Math.abs(b.vx) * 0.35; }
+        if (b.y + b.r > H) {
+          b.y = H - b.r;
+          if (b.vy > 40) b.vy *= -0.16; else b.vy = 0;
+          b.vx *= 0.94;
+        }
+      }
+    }
+    const before = bodies.length;
+    bodies = bodies.filter(b => !b.dead);
+    if (bodies.length !== before) updateHud(true);
+
+    // 危险线：只统计已经稳定下来的球
+    let danger = false;
+    for (const b of bodies) {
+      if (b.age > 1.1 && b.y - b.r < DANGER_Y) { danger = true; break; }
+    }
+    dangerTimer = danger ? dangerTimer + dt : Math.max(0, dangerTimer - dt * 2);
+    if (dangerTimer > 1.8) lose('堆过危险线');
+
+    // 现金烧钱
+    if (burn > 0) {
+      cash -= burn * dt;
+      if (cash <= 0) { cash = 0; lose('现金烧完'); }
+    }
+    if (state !== 'playing') return;
+
+    // 计时
+    timeLeft -= dt;
+    if (timeLeft <= 0) { timeLeft = 0; lose('时间到，增长没跑赢窗口'); }
+
+    // 市场窗口（第 3 关）
+    if (levelIndex === 2) {
+      marketTimer += dt;
+      if (!marketWindow && marketTimer >= 12) {
+        marketWindow = true; marketTimer = 0;
+        toast('📈 市场窗口开启：合并得分 ×2');
+      } else if (marketWindow && marketTimer >= 5) {
+        marketWindow = false; marketTimer = 0;
+        toast('市场窗口关闭');
+      }
+    }
+
+    // 连击超时
+    if (combo > 0 && performance.now() - lastMerge > 1500) combo = 1;
+
+    // 粒子
+    for (const p of particles) {
+      p.vy += 900 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt;
+    }
+    particles = particles.filter(p => p.life > 0);
+    shake = Math.max(0, shake - dt * 24);
+  }
+
+  function spawnParticles(x, y, color, n) {
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, sp = 40 + Math.random() * 190;
+      particles.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 60,
+        life: 0.4 + Math.random() * 0.6, max: 1, color, r: 2 + Math.random() * 3 });
+    }
+  }
+
+  // ---------- 胜负 ----------
+  function clearLevel() {
+    if (state !== 'playing') return;
+    state = 'levelclear';
+    const cfg = LEVELS[levelIndex];
+    const timeBonus = Math.max(0, Math.floor(timeLeft)) * 3;
+    const cashBonus = Math.max(0, Math.floor(cash)) * 2;
+    score += timeBonus + cashBonus;
+    if (bridgeUsed === 0) unlock('nobridge');
+    if (levelIndex === 0) {
+      unlock('firstwin');
+      if (performance.now() - levelStartMs < 45000) unlock('speed');
+    }
+    if (levelIndex === 2) {
+      unlock('ipo');
+      if (!allinUsed) unlock('nogamble');
+    }
+    best = Math.max(best, Math.floor(score));
+    try { localStorage.setItem(LS_BEST, String(best)); } catch {}
+    draw();
+    setTimeout(() => showLevelClear(cfg, timeBonus, cashBonus), 650);
+  }
+
+  function lose(reason) {
+    if (state !== 'playing') return;
+    state = 'over';
+    best = Math.max(best, Math.floor(score));
+    try { localStorage.setItem(LS_BEST, String(best)); } catch {}
+    draw();
+    setTimeout(() => showGameOver(reason), 450);
+  }
+
+  function levelScore() { return Math.max(0, Math.floor(score)); }
+
+  // ---------- 绘制 ----------
+  function draw() {
+    const sx = (Math.random() - 0.5) * shake;
+    const sy = (Math.random() - 0.5) * shake;
+    ctx.save();
+    ctx.translate(sx, sy);
+    // 背景
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#0b1220');
+    g.addColorStop(0.55, '#0a0f19');
+    g.addColorStop(1, '#070a11');
+    ctx.fillStyle = g;
+    ctx.fillRect(-10, -10, W + 20, H + 20);
+
+    // 网格
+    ctx.strokeStyle = 'rgba(88,166,255,.05)';
+    ctx.lineWidth = 1;
+    for (let x = 0; x <= W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+    for (let y = 0; y <= H; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+    // 市场窗口光效
+    if (marketWindow) {
+      const mg = ctx.createRadialGradient(W / 2, H / 2, 20, W / 2, H / 2, H * 0.75);
+      mg.addColorStop(0, 'rgba(240,180,41,.16)');
+      mg.addColorStop(1, 'rgba(240,180,41,0)');
+      ctx.fillStyle = mg;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    // 危险线
+    const pulse = 0.45 + 0.35 * Math.sin(performance.now() / 260);
+    ctx.save();
+    ctx.setLineDash([7, 7]);
+    ctx.strokeStyle = dangerTimer > 0 ? `rgba(248,81,73,${0.55 + pulse * 0.4})` : 'rgba(248,81,73,.42)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0, DANGER_Y); ctx.lineTo(W, DANGER_Y); ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = dangerTimer > 0 ? '#ff7b72' : 'rgba(248,81,73,.55)';
+    ctx.font = 'bold 10px system-ui';
+    ctx.textAlign = 'left';
+    ctx.fillText('危险线', 8, DANGER_Y - 7);
+    if (dangerTimer > 0.2) {
+      ctx.textAlign = 'right';
+      ctx.fillText('⚠ 快溢出', W - 8, DANGER_Y - 7);
+    }
+
+    // 地板
+    const fg = ctx.createLinearGradient(0, H - 16, 0, H);
+    fg.addColorStop(0, 'rgba(88,166,255,.05)');
+    fg.addColorStop(1, 'rgba(88,166,255,.16)');
+    ctx.fillStyle = fg;
+    ctx.fillRect(0, H - 10, W, 10);
+
+    // 球体
+    const sorted = [...bodies].sort((a, b) => a.y - b.y);
+    for (const b of sorted) drawBody(b);
+
+    // 粒子
+    for (const p of particles) {
+      ctx.globalAlpha = Math.max(0, p.life / p.max);
+      ctx.fillStyle = p.color;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // 瞄准预览
+    if (state === 'playing') drawAim();
+
+    // 顶部提示
+    if (state === 'playing' && bodies.length < 3) {
+      ctx.fillStyle = 'rgba(230,237,243,.55)';
+      ctx.font = 'bold 12px system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText('按住屏幕瞄准，松手投放', W / 2, H - 26);
+    }
+
+    ctx.restore();
+  }
+
+  function drawBody(b) {
+    const res = RES[b.level];
+    const r = b.r;
+    // 阴影
+    ctx.beginPath();
+    ctx.ellipse(b.x, H - 4, r * 0.7, 4, 0, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0,0,0,.25)';
+    ctx.fill();
+
+    const grd = ctx.createRadialGradient(b.x - r * 0.35, b.y - r * 0.4, r * 0.15, b.x, b.y, r);
+    grd.addColorStop(0, '#ffffff');
+    grd.addColorStop(0.12, res.color);
+    grd.addColorStop(1, shade(res.color, -0.42));
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, r, 0, Math.PI * 2);
+    ctx.fillStyle = grd;
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(255,255,255,.35)';
+    ctx.stroke();
+
+    // 高光
+    ctx.beginPath();
+    ctx.arc(b.x - r * 0.32, b.y - r * 0.36, r * 0.18, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,.55)';
+    ctx.fill();
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `${Math.max(13, r * 0.82)}px "Apple Color Emoji","Segoe UI Emoji",system-ui`;
+    ctx.fillText(res.icon, b.x, b.y - r * 0.12);
+    if (r >= 26) {
+      ctx.fillStyle = 'rgba(8,11,18,.78)';
+      ctx.font = `800 ${Math.max(8, Math.round(r * 0.3))}px system-ui`;
+      ctx.fillText(res.name, b.x, b.y + r * 0.52);
+    }
+    ctx.textBaseline = 'alphabetic';
+  }
+
+  function drawAim() {
+    const lv = nextLevel, r = RES[lv].r;
+    const x = clamp(aimX, r + 2, W - r - 2);
+    ctx.save();
+    ctx.setLineDash([4, 6]);
+    ctx.strokeStyle = 'rgba(240,180,41,.45)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(x, 46); ctx.lineTo(x, H); ctx.stroke();
+    ctx.restore();
+    ctx.globalAlpha = 0.9;
+    const grd = ctx.createRadialGradient(x - r * 0.3, 30 - r * 0.3, r * 0.1, x, 30, r);
+    grd.addColorStop(0, '#fff');
+    grd.addColorStop(0.15, RES[lv].color);
+    grd.addColorStop(1, shade(RES[lv].color, -0.4));
+    ctx.beginPath(); ctx.arc(x, 30, r, 0, Math.PI * 2);
+    ctx.fillStyle = grd; ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.45)'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = '#fff';
+    ctx.font = `${Math.max(12, r * 0.8)}px "Apple Color Emoji","Segoe UI Emoji",system-ui`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(RES[lv].icon, x, 30 - r * 0.1);
+    ctx.textBaseline = 'alphabetic';
+    ctx.globalAlpha = 1;
+  }
+
+  function shade(hex, amt) {
+    const n = parseInt(hex.slice(1), 16);
+    let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    r = clamp(Math.round(r + 255 * amt), 0, 255);
+    g = clamp(Math.round(g + 255 * amt), 0, 255);
+    b = clamp(Math.round(b + 255 * amt), 0, 255);
+    return `rgb(${r},${g},${b})`;
+  }
+
+  // ---------- HUD ----------
+  function updateHud(force) {
+    const now = performance.now();
+    if (!force && now - lastHudMs < 80) return;
+    lastHudMs = now;
+    const cfg = LEVELS[levelIndex];
+    cashV.textContent = fmt(Math.max(0, cash));
+    cashV.style.color = cash < 25 ? 'var(--red)' : 'var(--text)';
+    cashBar.style.width = clamp((cash / Math.max(1, cfg.cash)) * 100, 0, 100) + '%';
+    cashBar.style.background = cash < 25 ? 'var(--red)' : 'var(--green)';
+    scoreV.textContent = fmt(levelScore());
+    targetV.textContent = RES[targetLevel].icon + RES[targetLevel].name;
+    timeV.textContent = Math.max(0, Math.ceil(timeLeft)) + 's';
+    timeV.style.color = timeLeft < 15 ? 'var(--red)' : 'var(--text)';
+    const bridgeReady = state === 'playing' && levelIndex > 0 && bridgeUsed < 2 && cash < 35;
+    bridgeBtn.hidden = levelIndex === 0;
+    bridgeBtn.disabled = !bridgeReady;
+    bridgeBtn.textContent = bridgeUsed >= 2 ? '投资人已读不回' : '桥接轮 +40';
+    if (levelIndex === 2) {
+      allinBtn.classList.remove('hidden');
+      allinBtn.textContent = allinUsed ? 'ALL IN 已用' : 'ALL IN (-25)';
+      allinBtn.disabled = allinUsed || state !== 'playing' || cash < 25;
+    } else {
+      allinBtn.classList.add('hidden');
+    }
+    const nxt = RES[nextLevel].icon + RES[nextLevel].name;
+    const burnTxt = burn > 0 ? ` · burn <b>${burn.toFixed(2)}/s</b>` : '';
+    hint.innerHTML = state === 'playing'
+      ? `下一个：<b>${nxt}</b> · 现金 <b>${fmt(Math.max(0, cash))}</b>${burnTxt}`
+      : '同级自动合并 · 先活下来，再谈扩张';
+  }
+
+  function updateHudLoop() {
+    if (state === 'playing') updateHud(false);
+  }
+
+  // ---------- 弹窗 ----------
+  function showModal(html, onClick) {
+    modalCard.innerHTML = html;
+    modal.classList.remove('hidden');
+    if (onClick) modalCard.onclick = onClick;
+  }
+  function hideModal() {
+    modal.classList.add('hidden');
+    modalCard.onclick = null;
+  }
+
+  function showIntro() {
+    state = 'menu';
+    const cfg = LEVELS[levelIndex];
+    showModal(`
+      <div class="modal-tag">${cfg.company}</div>
+      <h2>${cfg.title}</h2>
+      <p class="story">${cfg.story}</p>
+      <div class="rulebox">${cfg.rules}</div>
+      <div class="target">目标：合出 <b>${RES[cfg.target].icon} ${RES[cfg.target].name}</b></div>
+      <div class="statline"><span>现金 <b>${cfg.cash}</b></span><span>固定 burn <b>${cfg.burn}/s</b></span><span>最高分 <b>${fmt(best)}</b></span></div>
+      <button class="btn" id="startLevel">开始第 ${levelIndex + 1} 关</button>
+      <div class="meta">按住屏幕瞄准，松手投放；两个同级资源碰在一起会升级。<br>第 ${levelIndex + 1} / 3 关</div>
+    `);
+    const btn = document.getElementById('startLevel');
+    if (btn) btn.onclick = beginLevel;
+  }
+
+  function showLevelClear(cfg, timeBonus, cashBonus) {
+    const nextName = levelIndex < 2 ? RES[LEVELS[levelIndex + 1].target].icon + ' ' + RES[LEVELS[levelIndex + 1].target].name : '最终战绩';
+    showModal(`
+      <div class="modal-tag">LEVEL CLEAR · ${cfg.company}</div>
+      <h2>✅ ${cfg.title} 过关</h2>
+      <p>${cfg.win}</p>
+      <div class="statline">
+        <span>本局得分 <b>${fmt(levelScore())}</b></span>
+        <span>时间奖励 <b>+${timeBonus}</b></span>
+        <span>现金奖励 <b>+${cashBonus}</b></span>
+        <span>桥接轮 <b>${bridgeUsed}</b></span>
+      </div>
+      <div class="ach">${[...runAch].map(id => `<span>🏆 ${ACH[id].n}</span>`).join('') || '<span>本关暂无成就</span>'}</div>
+      <button class="btn" id="nextLevel">${levelIndex < 2 ? '进入第 ' + (levelIndex + 2) + ' 关：' + nextName : '查看最终战绩'}</button>
+    `);
+    const btn = document.getElementById('nextLevel');
+    if (btn) btn.onclick = () => {
+      if (levelIndex < 2) {
+        setupLevel(levelIndex + 1);
+        showIntro();
+      } else {
+        showFinal(true);
+      }
+    };
+  }
+
+  function showGameOver(reason) {
+    state = 'over';
+    const cfg = LEVELS[levelIndex];
+    showModal(`
+      <div class="modal-tag">GAME OVER · ${cfg.company}</div>
+      <h2>☠️ 你倒在了「${cfg.title}」</h2>
+      <p>${reason}。${cfg.lose}</p>
+      <div class="big-score red">${fmt(levelScore())}</div>
+      <div class="center" style="font-size:11px;color:var(--dim)">本局得分</div>
+      <div class="statline">
+        <span>到达 <b>第 ${levelIndex + 1} 关</b></span>
+        <span>桥接轮 <b>${bridgeUsed}</b></span>
+        <span>最高分 <b>${fmt(best)}</b></span>
+      </div>
+      <div class="ach">${[...runAch].map(id => `<span>🏆 ${ACH[id].n}</span>`).join('') || '<span>还没有解锁成就</span>'}</div>
+      <div class="row">
+        <button class="btn" id="retry">重开一局</button>
+        <button class="btn ghost" id="shareOver">分享战绩</button>
+      </div>
+      <button class="btn ghost" id="saveOver" style="margin-top:8px">保存战绩图</button>
+      <div class="share-tip">${shareText(false)}</div>
+    `);
+    document.getElementById('retry').onclick = startRun;
+    document.getElementById('shareOver').onclick = () => shareResult(false);
+    document.getElementById('saveOver').onclick = () => saveCard(false);
+  }
+
+  function showFinal(won) {
+    state = won ? 'win' : 'over';
+    const cfg = LEVELS[levelIndex];
+    const ach = [...runAch];
+    showModal(`
+      <div class="modal-tag">${won ? 'IPO · SURVIVOR' : 'LIQUIDATION'}</div>
+      <h2>${won ? '🔔 你 IPO 了' : '☠️ 清算'}</h2>
+      <p>${won ? cfg.win : cfg.lose}</p>
+      <div class="big-score ${won ? '' : 'red'}">${fmt(levelScore())}</div>
+      <div class="center" style="font-size:11px;color:var(--dim)">最终得分 · 最高分 ${fmt(best)}</div>
+      <div class="statline">
+        <span>续命 <b>${bridgeUsed} 次</b></span>
+        <span>ALL IN <b>${allinUsed ? '用过' : '没用'}</b></span>
+        <span>成就 <b>${ach.length} / 6</b></span>
+      </div>
+      <div class="ach">${ach.map(id => `<span>🏆 ${ACH[id].n}</span>`).join('') || '<span>这局没有解锁成就</span>'}</div>
+      <div class="row">
+        <button class="btn" id="shareFinal">分享战绩</button>
+        <button class="btn ghost" id="retryFinal">再来一局</button>
+      </div>
+      <button class="btn ghost" id="saveFinal" style="margin-top:8px">保存战绩图</button>
+      <div class="share-tip">${shareText(true)}</div>
+    `);
+    document.getElementById('shareFinal').onclick = () => shareResult(true);
+    document.getElementById('retryFinal').onclick = startRun;
+    document.getElementById('saveFinal').onclick = () => saveCard(true);
+  }
+
+  // ---------- 分享 ----------
+  function shareText(won) {
+    const cfg = LEVELS[levelIndex];
+    const val = won ? `估值 $${(2 + levelScore() / 100).toFixed(1)}B` : `倒在 ${cfg.title}`;
+    return `【融资大冒险】${won ? 'IPO 成功' : '破产'}｜${val}｜得分 ${fmt(levelScore())}｜续命 ${bridgeUsed} 次｜成就 ${runAch.size}/6\n创业墓地 · 第 1210 号${won ? '幸存者' : '展品'}`;
+  }
+
+  async function copyText(text) {
+    try { await navigator.clipboard.writeText(text); return true; } catch {}
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      return ok;
+    } catch { return false; }
+  }
+
+  async function shareResult(won) {
+    const text = shareText(won);
+    if (navigator.share) {
+      try { await navigator.share({ title: '融资大冒险', text }); return; } catch {}
+    }
+    const ok = await copyText(text);
+    toast(ok ? '✅ 战绩已复制，去粘贴吧' : '复制失败，请长按下方文字');
+  }
+
+  function saveCard(won) {
+    const c = document.createElement('canvas');
+    c.width = 600; c.height = 800;
+    const x = c.getContext('2d');
+    const g = x.createLinearGradient(0, 0, 0, 800);
+    g.addColorStop(0, '#0b1220'); g.addColorStop(1, '#070a11');
+    x.fillStyle = g; x.fillRect(0, 0, 600, 800);
+    x.strokeStyle = '#26344a'; x.lineWidth = 3; x.strokeRect(18, 18, 564, 764);
+    x.textAlign = 'center';
+    x.fillStyle = '#f0b429'; x.font = '900 34px system-ui'; x.fillText('融资大冒险', 300, 100);
+    x.fillStyle = '#8b949e'; x.font = '600 16px system-ui'; x.fillText('创业墓地 · GRAVEYARD GAME', 300, 134);
+    x.fillStyle = won ? '#3fb950' : '#f85149'; x.font = '900 58px system-ui';
+    x.fillText(won ? 'IPO 成功' : '破产清算', 300, 250);
+    x.fillStyle = '#e6edf3'; x.font = '900 72px system-ui'; x.fillText(fmt(levelScore()), 300, 360);
+    x.fillStyle = '#8b949e'; x.font = '600 18px system-ui'; x.fillText('最终得分', 300, 395);
+    x.fillStyle = '#c7d2df'; x.font = '600 20px system-ui';
+    x.fillText(`第 ${levelIndex + 1} 关 · 续命 ${bridgeUsed} 次 · 成就 ${runAch.size}/6`, 300, 470);
+    x.fillStyle = '#5d6b7f'; x.font = '600 16px system-ui';
+    x.fillText(shareText(won).split('\n')[0], 300, 540);
+    x.fillStyle = '#f0b429'; x.font = '700 16px system-ui';
+    x.fillText('长按保存 / 截图分享', 300, 700);
+    c.toBlob((blob) => {
+      if (!blob) { toast('保存失败'); return; }
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `融资大冒险-${won ? 'IPO' : '破产'}.png`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      toast('🖼 战绩图已生成');
+    }, 'image/png');
+  }
+
+  // ---------- 输入 ----------
+  function canvasX(e) {
+    const r = canvas.getBoundingClientRect();
+    return clamp((e.clientX - r.left) / r.width * W, 0, W);
+  }
+  canvas.addEventListener('pointerdown', (e) => {
+    if (state !== 'playing') return;
+    dragging = true; pointerInside = true;
+    aimX = canvasX(e);
+    canvas.setPointerCapture && canvas.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  }, { passive: false });
+  canvas.addEventListener('pointermove', (e) => {
+    if (state !== 'playing') return;
+    aimX = canvasX(e);
+    e.preventDefault();
+  }, { passive: false });
+  canvas.addEventListener('pointerup', (e) => {
+    if (state !== 'playing') return;
+    if (dragging) { aimX = canvasX(e); drop(aimX); }
+    dragging = false;
+    e.preventDefault();
+  }, { passive: false });
+  canvas.addEventListener('pointercancel', () => { dragging = false; });
+  canvas.addEventListener('pointerleave', () => { pointerInside = false; });
+
+  bridgeBtn.addEventListener('click', () => {
+    if (state !== 'playing' || levelIndex === 0 || bridgeUsed >= 2 || cash >= 35) return;
+    bridgeUsed++;
+    cash += 40;
+    burn *= 1.5;
+    score = Math.max(0, score - 200);
+    toast('💸 桥接轮到账：+40 现金，burn +50%');
+    updateHud(true);
+  });
+  allinBtn.addEventListener('click', () => {
+    if (state !== 'playing' || levelIndex !== 2 || allinUsed || cash < 25) return;
+    allinUsed = true; cash -= 25;
+    const lv = 4;
+    addBody(lv, clamp(aimX, RES[lv].r + 2, W - RES[lv].r - 2), 30, 0, 0);
+    toast('🎲 ALL IN：丢下一个「团队」，听天由命');
+    allinFlash = 1;
+    updateHud(true);
+  });
+
+  // ---------- 主循环 ----------
+  let lastTs = 0, acc = 0;
+  function loop(ts) {
+    if (!lastTs) lastTs = ts;
+    let dt = (ts - lastTs) / 1000;
+    lastTs = ts;
+    if (dt > 0.05) dt = 0.05;
+    if (state === 'playing' || state === 'levelclear') {
+      acc += dt;
+      while (acc >= 1 / 60) { physics(1 / 60); acc -= 1 / 60; }
+    } else {
+      // 静态界面也让粒子/抖动衰减
+      for (const p of particles) { p.vy += 900 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt; }
+      particles = particles.filter(p => p.life > 0);
+      shake = Math.max(0, shake - dt * 24);
+    }
+    updateHud(false);
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  // ---------- 启动 ----------
+  window.addEventListener('load', () => { fit(); startRun(); requestAnimationFrame(loop); });
+  // 首屏在 load 前也画一次，避免闪白
+  fit();
+  draw();
+
+  // ---------- 调试钩子（仅供本地自动化测试） ----------
+  window.__game = {
+    get state() { return state; },
+    get level() { return levelIndex; },
+    get cash() { return cash; },
+    get score() { return score; },
+    get time() { return timeLeft; },
+    get burn() { return burn; },
+    get bodies() { return bodies.map(b => ({ x: b.x, y: b.y, r: b.r, level: b.level })); },
+    get target() { return targetLevel; },
+    start() { startRun(); beginLevel(); },
+    begin() { beginLevel(); },
+    dropAt(x) { drop(x); },
+    spawn(lv, x, y) { const b = addBody(lv, x, y, 0, 0); b.age = 0.5; b.mergeCd = 0; return b; },
+    setup(i) { setupLevel(i); state = 'playing'; hideModal(); },
+    clear() { clearLevel(); },
+    loseNow() { lose('调试'); },
+    final(won) { showFinal(won !== false); },
+    setCash(v) { cash = v; updateHud(true); },
+  };
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#080b12">
+<title>消除创业坑 · 创业墓地</title>
+<style>
+  :root{
+    --bg:#080b12;--card:#111827;--line:#1f2a3a;--text:#e6edf3;--dim:#8b949e;
+    --gold:#f0b429;--red:#f85149;--green:#3fb950;--blue:#58a6ff;--purple:#d2a8ff;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    overflow:hidden;user-select:none}
+  #app{height:100dvh;height:100vh;display:flex;flex-direction:column;gap:5px;
+    padding:8px 10px calc(8px + env(safe-area-inset-bottom));max-width:480px;margin:0 auto}
+  header{flex:0 0 auto}
+  .topline{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .brand{font-size:16px;font-weight:800;letter-spacing:.5px;white-space:nowrap}
+  .brand small{font-size:10px;color:var(--dim);font-weight:500;margin-left:4px}
+  .level-pill{font-size:11px;font-weight:700;color:#0b1020;background:var(--gold);
+    border-radius:999px;padding:4px 10px;white-space:nowrap}
+  .hud{display:grid;grid-template-columns:1.15fr 1fr 1fr 1fr;gap:6px;margin-top:6px}
+  .hud-cell{background:#0d1421;border:1px solid var(--line);border-radius:10px;padding:4px 7px;min-width:0}
+  .hud-cell .k{font-size:9px;color:var(--dim);letter-spacing:.4px}
+  .hud-cell .v{font-size:14px;font-weight:800;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hud-cell .v.gold{color:var(--gold)}
+  #boardWrap{flex:1 1 auto;min-height:0;position:relative;overflow:hidden}
+  #board{position:absolute;left:50%;top:50%;width:360px;height:400px;
+    transform:translate(-50%,-50%) scale(1);transform-origin:center;border-radius:18px;
+    background:radial-gradient(ellipse at 50% 40%,rgba(34,49,72,.55),rgba(8,12,20,.2) 70%);
+    box-shadow:inset 0 0 0 1px rgba(88,166,255,.08)}
+  .card{position:absolute;width:54px;height:68px;border-radius:9px;border:1px solid rgba(255,255,255,.2);
+    background:linear-gradient(180deg,#1b2638,#101725);color:var(--text);padding:3px 2px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+    box-shadow:0 5px 0 #070b12,0 8px 14px rgba(0,0,0,.45);cursor:pointer;
+    transition:transform .1s,opacity .16s;font:inherit;touch-action:manipulation}
+  .card:active{transform:scale(.94)}
+  .card .ci{font-size:19px;line-height:1;filter:drop-shadow(0 1px 1px rgba(0,0,0,.8))}
+  .card .cn{font-size:9px;font-weight:800;letter-spacing:0;line-height:1.1;text-align:center;
+    color:#dfe8f3;text-shadow:0 1px 2px #000}
+  .card.gone{opacity:0;transform:scale(.5) translateY(10px);pointer-events:none}
+  .card.fresh{animation:pop .25s ease-out}
+  @keyframes pop{0%{transform:translateY(-12px) scale(.7);opacity:.2}100%{transform:none;opacity:1}}
+  #trayWrap{flex:0 0 auto;background:#0d1421;border:1px solid var(--line);border-radius:13px;
+    padding:6px 7px;display:flex;align-items:center;gap:7px}
+  .tray-label{font-size:9px;color:var(--dim);writing-mode:vertical-rl;line-height:1;letter-spacing:1px;flex:0 0 auto}
+  #tray{display:flex;gap:4px;flex:1;justify-content:center}
+  .slot{width:38px;height:46px;border-radius:8px;border:1px dashed #2a3a52;background:#0a1220;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;
+    flex:0 0 auto;transition:background .15s,border-color .15s}
+  .slot.filled{border-style:solid;border-color:var(--c,#3b4c66);background:linear-gradient(180deg,#1a2638,#101827)}
+  .slot .si{font-size:19px;line-height:1}
+  .slot .sn{font-size:8px;font-weight:800;color:#cbd5e1;line-height:1;margin-top:1px;text-align:center}
+  .slot.match{animation:match .22s ease-out}
+  @keyframes match{0%{transform:scale(1)}50%{transform:scale(1.18);background:#2a3a24}100%{transform:scale(1)}}
+  .slot.locked{border-style:solid;border-color:var(--red);background:linear-gradient(180deg,#2a1418,#190b0e)}
+  .slot.locked .si{font-size:16px}
+  .slot.locked .sn{color:#ff9b95}
+  .props{display:flex;gap:5px;flex:0 0 auto}
+  .prop{flex:1;background:#111b29;border:1px solid #26344a;border-radius:10px;color:var(--text);
+    font-size:11px;font-weight:700;padding:7px 2px;cursor:pointer;position:relative;min-width:0}
+  .prop:active{transform:scale(.97)}
+  .prop:disabled{opacity:.35}
+  .prop b{color:var(--gold);font-size:10px}
+  .prop.help{background:#1a1526;border-color:#3b2b55;color:#e6d6ff}
+  .hint{font-size:10px;color:var(--dim);text-align:center;line-height:1.4;min-height:14px;flex:0 0 auto}
+  .hidden{display:none!important}
+  .modal{position:fixed;inset:0;background:rgba(2,5,10,.78);backdrop-filter:blur(5px);
+    display:flex;align-items:center;justify-content:center;padding:18px;z-index:20}
+  .modal-card{width:100%;max-width:400px;max-height:86dvh;overflow:auto;background:
+    linear-gradient(180deg,#121b2b,#0b111c);border:1px solid #26344a;border-radius:18px;
+    padding:18px;box-shadow:0 24px 80px rgba(0,0,0,.7)}
+  .modal-tag{font-size:10px;letter-spacing:1.5px;color:var(--gold);text-transform:uppercase;margin-bottom:5px}
+  .modal-card h2{font-size:21px;margin:0 0 8px;line-height:1.25}
+  .modal-card p{font-size:13px;line-height:1.65;color:#b8c3d1;margin:0 0 10px}
+  .modal-card p.story{color:#d6dee8}
+  .rulebox{background:#0a1220;border:1px solid #223148;border-radius:12px;padding:10px 12px;
+    font-size:12px;line-height:1.6;color:#aab7c8;margin:10px 0}
+  .rulebox b{color:var(--gold)}
+  .target{font-size:13px;font-weight:700;margin:10px 0 4px}
+  .modal-card .btn{margin-top:12px;width:100%}
+  .btn{border:none;border-radius:11px;padding:11px 14px;font-size:13px;font-weight:800;
+    color:#0b1020;background:var(--gold);cursor:pointer;transition:transform .1s,opacity .15s}
+  .btn:active{transform:scale(.97)}
+  .btn.ghost{background:#151f2e;color:var(--text);border:1px solid #2a3a52}
+  .modal-card .row{display:flex;gap:8px;margin-top:10px}
+  .modal-card .row .btn{margin-top:0;flex:1}
+  .meta{font-size:11px;color:var(--dim);text-align:center;margin-top:10px;line-height:1.6}
+  .statline{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+  .statline span{background:#0b1422;border:1px solid #223148;border-radius:8px;
+    padding:5px 8px;font-size:11px;color:#c7d2df}
+  .statline b{color:var(--gold)}
+  .ach{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 2px}
+  .ach span{background:#16202f;border:1px solid #31435c;color:#ffd56b;border-radius:999px;
+    padding:4px 9px;font-size:11px;font-weight:700}
+  .big-score{font-size:36px;font-weight:900;letter-spacing:1px;text-align:center;margin:6px 0 0;color:var(--gold)}
+  .big-score.red{color:var(--red)}
+  .center{text-align:center}
+  .share-tip{font-size:10px;color:var(--dim);text-align:center;margin-top:10px;line-height:1.5}
+  #float{position:absolute;left:0;top:0;pointer-events:none;font-weight:900;color:var(--gold);
+    font-size:20px;text-shadow:0 2px 8px #000;opacity:0;transition:transform .5s,opacity .5s;z-index:30}
+  #toast{position:fixed;left:50%;top:96px;transform:translate(-50%,-10px);opacity:0;
+    background:rgba(13,20,33,.96);border:1px solid #2a3a52;color:var(--text);
+    font-size:12px;font-weight:700;padding:7px 12px;border-radius:999px;pointer-events:none;
+    transition:opacity .2s,transform .2s;white-space:nowrap;max-width:92%;overflow:hidden;
+    text-overflow:ellipsis;z-index:40}
+  #toast.show{opacity:1;transform:translate(-50%,0)}
+  @media (max-height:690px){
+    .brand{font-size:14px}.hud-cell .v{font-size:12px}.hud-cell{padding:3px 6px}
+    .card{width:50px;height:62px}.slot{width:35px;height:42px}
+    .prop{font-size:10px;padding:6px 1px}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="topline">
+      <div class="brand">🧹 消除创业坑 <small>创业墓地</small></div>
+      <div class="level-pill" id="levelPill">第 1 / 3 关</div>
+    </div>
+    <div class="hud">
+      <div class="hud-cell"><div class="k">得分</div><div class="v gold" id="scoreV">0</div></div>
+      <div class="hud-cell"><div class="k">剩余坑</div><div class="v" id="leftV">18</div></div>
+      <div class="hud-cell"><div class="k">连击</div><div class="v" id="comboV">×1</div></div>
+      <div class="hud-cell"><div class="k">槽位</div><div class="v" id="trayV">0/7</div></div>
+    </div>
+  </header>
+
+  <div id="boardWrap">
+    <div id="board"></div>
+    <div id="float"></div>
+  </div>
+
+  <div id="trayWrap">
+    <div class="tray-label">牌槽</div>
+    <div id="tray"></div>
+  </div>
+
+  <div class="props">
+    <button class="prop" id="undoBtn">↩ 撤销 <b id="undoN">1</b></button>
+    <button class="prop" id="shuffleBtn">🔀 洗牌 <b id="shuffleN">1</b></button>
+    <button class="prop" id="outBtn">📤 移出 <b id="outN">1</b></button>
+    <button class="prop help" id="helpBtn">🤝 求助</button>
+  </div>
+  <div class="hint" id="hint">点击最上层卡牌 · 三张同类自动消除 · 槽位满 7 失败</div>
+</div>
+
+<div class="modal hidden" id="modal">
+  <div class="modal-card" id="modalCard"></div>
+</div>
+<div id="toast"></div>
+
+<script>
+(() => {
+  'use strict';
+  const W = 360, H = 400, CARD_W = 54, CARD_H = 68;
+  const TYPES = {
+    need:  {name:'无需求',   icon:'🕳️', color:'#8b949e'},
+    scale: {name:'过早扩张', icon:'📈', color:'#ff9f43'},
+    comp:  {name:'致命竞争', icon:'⚔️', color:'#f85149'},
+    fund:  {name:'融资续命', icon:'💉', color:'#d2a8ff'},
+    model: {name:'模式错配', icon:'🧩', color:'#58a6ff'},
+    bet:   {name:'赌徒豪赌', icon:'🎲', color:'#f0b429'},
+    team:  {name:'团队内耗', icon:'🔥', color:'#3fb950'},
+  };
+  const ALL_TYPES = Object.keys(TYPES);
+  const LEVELS = [
+    {
+      title:'需求验证', company:'Airbnb · 2010 前后', triples:4, layers:2,
+      types:['need','scale','comp','model'],
+      story:'你刚做出一个“看起来不错”的产品。投资人问了一个最朴素的问题：谁真的需要它？',
+      rules:'点击最上层卡牌 → 进入底部 7 格槽 → 三张同图案自动消除。清空牌堆过关，槽位满 7 则失败。',
+      win:'你没有急着扩张，而是先验证需求。Airbnb 早期挨家帮房东拍照——那些脏活换来的留存，买量买不来。',
+      lose:'你被“猜需求”埋了。没有验证的扩张，只会把坑挖得更深。'
+    },
+    {
+      title:'致命竞争', company:'Quibi / ofo · 2020', triples:12, layers:3,
+      types:ALL_TYPES,
+      story:'产品有人用了，巨头也看见了。对手开始复制你的功能、抬高你的获客成本。',
+      rules:'清空牌堆过关。每 20 秒竞争对手会往牌堆顶部塞 3 张「致命竞争」（最多 2 波）。优先消掉竞争牌，别让槽位被它们占死。',
+      win:'你清掉了竞争牌，没有跟着对手打补贴战。Quibi 用好莱坞预算打短视频，上线 8 个月关停；ofo 和摩拜的补贴战也没有赢家。',
+      lose:'你被竞争牌占满了槽位。没有差异化的免费和补贴，只是延缓死亡的价格战。'
+    },
+    {
+      title:'团队内耗', company:'WeWork · 2019', triples:15, layers:3,
+      types:ALL_TYPES,
+      story:'外部竞争还没打完，内部先炸了。创始人、董事会、投资人各有一套叙事，团队会议变成互相举证。',
+      rules:'清空牌堆过关。「团队内耗」牌进入槽位时，会锁住 1 个空槽 6 秒（最多同时锁 2 个）。先清内耗，再谈增长。',
+      win:'你清掉了内耗，把槽位留给了真正重要的牌。WeWork 没有：治理争议、估值叙事和创始人的个人意志，最终把公司拖进 2023 年破产。',
+      lose:'内耗锁死了你的槽位。公司不是被对手打死的，是被自己耗死的。'
+    }
+  ];
+  const ACH = {
+    firstwin:{n:'第一次过关', d:'通关任意一关'},
+    nodrug:{n:'零道具', d:'不用任何道具通关'},
+    combo5:{n:'五连消', d:'单局连击达到 5'},
+    lastslot:{n:'最后一格', d:'槽位到过 6 格仍完成关卡'},
+    fastcomp:{n:'快过对手', d:'第 2 关在 20 秒内通关'},
+    clean:{n:'清道夫', d:'通关第 3 关'},
+  };
+  const LS_BEST = 'gg_match_best_v1';
+  const LS_ACH = 'gg_match_ach_v1';
+
+  const $ = (id) => document.getElementById(id);
+  const boardEl = $('board'), trayEl = $('tray'), floatEl = $('float');
+  const scoreV = $('scoreV'), leftV = $('leftV'), comboV = $('comboV'), trayV = $('trayV');
+  const levelPill = $('levelPill'), hint = $('hint');
+  const undoBtn = $('undoBtn'), shuffleBtn = $('shuffleBtn'), outBtn = $('outBtn'), helpBtn = $('helpBtn');
+  const undoN = $('undoN'), shuffleN = $('shuffleN'), outN = $('outN');
+  const modal = $('modal'), modalCard = $('modalCard'), toastEl = $('toast');
+
+  let state = 'menu'; // menu | playing | levelclear | win | over
+  let levelIndex = 0;
+  let cards = [];       // {id,type,x,y,z,el,removed}
+  let tray = [];        // type ids in slot order
+  let locks = [];       // {until}
+  let score = 0, combo = 0, maxCombo = 0, maxTray = 0, moves = 0, lastMatchAt = 0;
+  let undoLeft = 1, shuffleLeft = 1, outLeft = 1;
+  let usedProp = false, helpUsed = false;
+  let lastMove = null;
+  let cardSeq = 0;
+  let waveTimer = null, waveCount = 0;
+  let lockTimer = null;
+  let levelStartMs = 0;
+  let runAch = new Set();
+  let best = Number(localStorage.getItem(LS_BEST) || 0);
+  let knownAch = loadAch();
+  let toastTimer = 0;
+
+  // ---------- 工具 ----------
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const fmt = (n) => Math.floor(n).toLocaleString('en-US');
+  const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  function loadAch() { try { return new Set(JSON.parse(localStorage.getItem(LS_ACH) || '[]')); } catch { return new Set(); } }
+  function saveAch() { try { localStorage.setItem(LS_ACH, JSON.stringify([...knownAch])); } catch {} }
+  function toast(msg) {
+    toastEl.textContent = msg; toastEl.classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1700);
+  }
+  function unlock(id) {
+    if (!ACH[id] || runAch.has(id)) return;
+    runAch.add(id);
+    if (!knownAch.has(id)) { knownAch.add(id); saveAch(); toast('🏆 成就解锁：' + ACH[id].n); }
+  }
+
+  // ---------- 布局 ----------
+  function fitBoard() {
+    const wrap = $('boardWrap');
+    const w = wrap.clientWidth, h = wrap.clientHeight;
+    if (!w || !h) return;
+    const s = Math.min(w / W, h / H);
+    boardEl.style.transform = `translate(-50%,-50%) scale(${s})`;
+  }
+  window.addEventListener('resize', fitBoard);
+  window.addEventListener('orientationchange', () => setTimeout(fitBoard, 120));
+
+  // ---------- 关卡生成 ----------
+  function layoutFor(level, layer, index, perLayer) {
+    if (level === 0) {
+      const c = index % 3, r = Math.floor(index / 3);
+      return { x: 84 + layer * 18 + c * 70, y: 100 + layer * 18 + r * 84 };
+    }
+    if (level === 1) {
+      const c = index % 4, r = Math.floor(index / 4);
+      return { x: 58 + layer * 10 + c * 60, y: 40 + layer * 10 + r * 74 };
+    }
+    const c = index % 5, r = Math.floor(index / 5);
+    return { x: 37 + layer * 8 + c * 58, y: 36 + layer * 8 + r * 74 };
+  }
+
+  function makeDeck(level) {
+    const cfg = LEVELS[level];
+    const pool = [...cfg.types];
+    const triples = [];
+    for (let i = 0; i < cfg.triples; i++) {
+      let t;
+      if (i < pool.length) t = pool[i];
+      else {
+        // 关卡 2 偏竞争，关卡 3 偏内耗，让主题机制出现得更多
+        if (level === 1 && Math.random() < 0.3) t = 'comp';
+        else if (level === 2 && Math.random() < 0.3) t = 'team';
+        else t = pool[Math.floor(Math.random() * pool.length)];
+      }
+      triples.push(t);
+    }
+    const deck = [];
+    for (const t of triples) deck.push(t, t, t);
+    return shuffle(deck);
+  }
+
+  function buildLevel(i) {
+    levelIndex = i;
+    const cfg = LEVELS[i];
+    clearTimers();
+    cards = []; tray = []; locks = [];
+    combo = 0; maxCombo = 0; maxTray = 0; moves = 0; lastMatchAt = 0;
+    undoLeft = 1; shuffleLeft = 1; outLeft = 1;
+    usedProp = false; helpUsed = false; lastMove = null;
+    waveCount = 0;
+    const deck = makeDeck(i);
+    const layers = cfg.layers;
+    const perLayer = Math.ceil(deck.length / layers);
+    boardEl.innerHTML = '';
+    let k = 0;
+    for (let layer = 0; layer < layers; layer++) {
+      for (let idx = 0; idx < perLayer && k < deck.length; idx++, k++) {
+        const pos = layoutFor(i, layer, idx, perLayer);
+        addCard(deck[k], pos.x, pos.y, layer * 100 + idx, true);
+      }
+    }
+    levelPill.textContent = `第 ${i + 1} / 3 关`;
+    levelStartMs = performance.now();
+    if (i === 1) scheduleWave();
+    if (i === 2) startLockClock();
+    renderTray(); updateHud(); fitBoard();
+  }
+
+  function addCard(type, x, y, z, fresh) {
+    const card = { id: ++cardSeq, type, x, y, z, removed: false, el: null };
+    const el = document.createElement('button');
+    el.className = 'card' + (fresh ? ' fresh' : '');
+    el.type = 'button';
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    el.style.zIndex = String(z);
+    el.innerHTML = `<span class="ci">${TYPES[type].icon}</span><span class="cn">${TYPES[type].name}</span>`;
+    el.addEventListener('click', (e) => { e.stopPropagation(); tapCard(card); });
+    card.el = el;
+    boardEl.appendChild(el);
+    cards.push(card);
+    return card;
+  }
+
+  function clearTimers() {
+    if (waveTimer) { clearTimeout(waveTimer); waveTimer = null; }
+    if (lockTimer) { clearInterval(lockTimer); lockTimer = null; }
+  }
+
+  function spawnWave() {
+    if (state !== 'playing' || levelIndex !== 1) return;
+    waveCount++;
+    for (let i = 0; i < 3; i++) {
+      const x = 30 + Math.random() * 276;
+      const y = 24 + Math.random() * 260;
+      addCard('comp', x, y, 900 + i + waveCount * 10, true);
+    }
+    toast('⚠️ 竞争对手入场：牌堆 +3 张「致命竞争」');
+    updateHud();
+  }
+
+  function scheduleWave() {
+    if (levelIndex !== 1) return;
+    waveTimer = setTimeout(() => {
+      if (state !== 'playing' || levelIndex !== 1) return;
+      spawnWave();
+      if (waveCount < 2) scheduleWave();
+    }, 20000);
+  }
+
+  function startLockClock() {
+    if (lockTimer) clearInterval(lockTimer);
+    lockTimer = setInterval(() => {
+      if (!locks.length) return;
+      const now = performance.now();
+      const before = locks.length;
+      locks = locks.filter(l => l.until > now);
+      if (locks.length !== before) { renderTray(); updateHud(); }
+    }, 200);
+  }
+
+  function activeLocks() {
+    const now = performance.now();
+    return locks.filter(l => l.until > now).length;
+  }
+
+  // ---------- 槽位 ----------
+  function trayCapacity() { return 7 - activeLocks(); }
+
+  function insertTray(type) {
+    let at = tray.length;
+    for (let i = tray.length - 1; i >= 0; i--) {
+      if (tray[i] === type) { at = i + 1; break; }
+    }
+    tray.splice(at, 0, type);
+  }
+
+  function tapCard(card) {
+    if (state !== 'playing' || card.removed) return;
+    // 先入槽再判三连：即使槽位已满，凑成三张也应该允许消除。
+    card.removed = true;
+    moves++;
+    if (card.el) { card.el.classList.add('gone'); setTimeout(() => card.el && card.el.remove(), 180); }
+    lastMove = card;
+    insertTray(card.type);
+    maxTray = Math.max(maxTray, tray.length);
+
+    const count = tray.filter(t => t === card.type).length;
+    if (count >= 3) {
+      const now = performance.now();
+      combo = (now - lastMatchAt < 4000) ? combo + 1 : 1;
+      lastMatchAt = now;
+      maxCombo = Math.max(maxCombo, combo);
+      const gain = 100 * combo;
+      score += gain;
+      for (let i = tray.length - 1, removed = 0; i >= 0 && removed < 3; i--) {
+        if (tray[i] === card.type) { tray.splice(i, 1); removed++; }
+      }
+      lastMove = null;
+      showFloat(`+${gain}${combo > 1 ? ' ×' + combo : ''}`);
+      if (combo >= 5) unlock('combo5');
+      renderTray(true);
+      // 内耗牌：进入槽位时锁一个空槽
+      if (levelIndex === 2 && card.type === 'team') lockSlot();
+    } else {
+      if (levelIndex === 2 && card.type === 'team') lockSlot();
+      renderTray();
+    }
+    updateHud();
+    checkEnd();
+  }
+
+  function lockSlot() {
+    if (activeLocks() >= 2) return;
+    if (tray.length > 4) return;
+    locks.push({ until: performance.now() + 6000 });
+    toast('🔥 团队内耗：锁住 1 个空槽 6 秒');
+    renderTray(); updateHud();
+  }
+
+  function showFloat(text) {
+    floatEl.textContent = text;
+    floatEl.style.left = '50%';
+    floatEl.style.top = '62%';
+    floatEl.style.transform = 'translate(-50%,0) scale(1)';
+    floatEl.style.opacity = '1';
+    requestAnimationFrame(() => {
+      floatEl.style.transform = 'translate(-50%,-46px) scale(1.2)';
+      floatEl.style.opacity = '0';
+    });
+  }
+
+  function renderTray(matched) {
+    const cap = trayCapacity();
+    trayEl.innerHTML = '';
+    for (let i = 0; i < 7; i++) {
+      const slot = document.createElement('div');
+      slot.className = 'slot';
+      if (i < tray.length) {
+        const t = TYPES[tray[i]];
+        slot.classList.add('filled');
+        slot.style.setProperty('--c', t.color);
+        slot.innerHTML = `<span class="si">${t.icon}</span><span class="sn">${t.name}</span>`;
+        if (matched) slot.classList.add('match');
+      } else if (i >= cap) {
+        slot.classList.add('locked');
+        slot.innerHTML = '<span class="si">🔒</span><span class="sn">内耗</span>';
+      }
+      trayEl.appendChild(slot);
+    }
+  }
+
+  function updateHud() {
+    scoreV.textContent = fmt(score);
+    const left = cards.filter(c => !c.removed).length;
+    leftV.textContent = String(left);
+    if (combo > 0 && performance.now() - lastMatchAt > 4000) combo = 0;
+    comboV.textContent = '×' + Math.max(1, combo);
+    trayV.textContent = `${tray.length}/${trayCapacity()}`;
+    trayV.style.color = tray.length >= trayCapacity() - 1 ? 'var(--red)' : 'var(--text)';
+    undoN.textContent = String(undoLeft);
+    shuffleN.textContent = String(shuffleLeft);
+    outN.textContent = String(outLeft);
+    undoBtn.disabled = undoLeft <= 0 || state !== 'playing';
+    shuffleBtn.disabled = shuffleLeft <= 0 || state !== 'playing';
+    outBtn.disabled = outLeft <= 0 || state !== 'playing';
+    helpBtn.disabled = helpUsed || state !== 'playing';
+    helpBtn.textContent = helpUsed ? '🤝 已求助' : '🤝 求助';
+  }
+
+  // ---------- 道具 ----------
+  function undo() {
+    if (state !== 'playing' || undoLeft <= 0 || !lastMove) return;
+    const card = lastMove;
+    if (card.removed && !card.el) return;
+    const idx = tray.lastIndexOf(card.type);
+    if (idx < 0) return;
+    tray.splice(idx, 1);
+    card.removed = false;
+    card.el = document.createElement('button');
+    card.el.className = 'card fresh';
+    card.el.type = 'button';
+    card.el.style.left = card.x + 'px';
+    card.el.style.top = card.y + 'px';
+    card.el.style.zIndex = String(card.z);
+    card.el.innerHTML = `<span class="ci">${TYPES[card.type].icon}</span><span class="cn">${TYPES[card.type].name}</span>`;
+    card.el.addEventListener('click', (e) => { e.stopPropagation(); tapCard(card); });
+    boardEl.appendChild(card.el);
+    undoLeft--; usedProp = true; lastMove = null;
+    renderTray(); updateHud();
+    toast('↩ 已撤销最后一张');
+  }
+
+  function shuffleBoard() {
+    if (state !== 'playing' || shuffleLeft <= 0) return;
+    const alive = cards.filter(c => !c.removed);
+    const types = alive.map(c => c.type);
+    shuffle(types);
+    for (let i = 0; i < alive.length; i++) {
+      alive[i].type = types[i];
+      const t = TYPES[alive[i].type];
+      alive[i].el.innerHTML = `<span class="ci">${t.icon}</span><span class="cn">${t.name}</span>`;
+    }
+    shuffleLeft--; usedProp = true;
+    updateHud();
+    toast('🔀 剩余牌已重排');
+  }
+
+  function moveOut() {
+    if (state !== 'playing' || outLeft <= 0 || tray.length === 0) return;
+    const n = Math.min(3, tray.length);
+    const moved = tray.splice(tray.length - n, n);
+    for (const type of moved) {
+      const x = 24 + Math.random() * 280;
+      const y = 24 + Math.random() * 240;
+      addCard(type, x, y, 800 + Math.floor(Math.random() * 100), true);
+    }
+    outLeft--; usedProp = true; lastMove = null;
+    renderTray(); updateHud();
+    toast(`📤 已把 ${n} 张牌放回牌堆顶部`);
+  }
+
+  async function askHelp() {
+    if (state !== 'playing' || helpUsed) return;
+    helpUsed = true;
+    undoLeft++;
+    const text = `我在《消除创业坑》第 ${levelIndex + 1} 关卡住了，槽位只剩 ${Math.max(0, trayCapacity() - tray.length)} 格。你能帮我看一眼该先消哪个坑吗？`;
+    const ok = await copyText(text);
+    updateHud();
+    toast(ok ? '🤝 求助文案已复制，并获得 +1 撤销' : '🤝 已获得 +1 撤销');
+  }
+
+  async function copyText(text) {
+    try { await navigator.clipboard.writeText(text); return true; } catch {}
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      const ok = document.execCommand('copy'); document.body.removeChild(ta); return ok;
+    } catch { return false; }
+  }
+
+  // ---------- 胜负 ----------
+  function checkEnd() {
+    if (state !== 'playing') return;
+    if (tray.length >= 7 || tray.length > trayCapacity()) { lose('槽位已满'); return; }
+    if (cards.every(c => c.removed)) {
+      if (tray.length === 0) winLevel();
+      else lose('牌堆清空了，槽位里还有凑不成组的坑');
+    }
+  }
+
+  function winLevel() {
+    if (state !== 'playing') return;
+    state = 'levelclear';
+    clearTimers();
+    const cfg = LEVELS[levelIndex];
+    const propBonus = (undoLeft + shuffleLeft + outLeft) * 100;
+    const slotBonus = Math.max(0, 7 - maxTray) * 50;
+    score += 500 + propBonus + slotBonus;
+    if (!usedProp) unlock('nodrug');
+    unlock('firstwin');
+    if (maxTray >= 6) unlock('lastslot');
+    if (levelIndex === 1 && performance.now() - levelStartMs < 20000) unlock('fastcomp');
+    if (levelIndex === 2) unlock('clean');
+    best = Math.max(best, score);
+    try { localStorage.setItem(LS_BEST, String(best)); } catch {}
+    setTimeout(() => showLevelClear(cfg, propBonus, slotBonus), 500);
+  }
+
+  function lose(reason) {
+    if (state !== 'playing') return;
+    state = 'over';
+    clearTimers();
+    best = Math.max(best, score);
+    try { localStorage.setItem(LS_BEST, String(best)); } catch {}
+    setTimeout(() => showGameOver(reason), 350);
+  }
+
+  // ---------- 弹窗 ----------
+  function showModal(html) {
+    modalCard.innerHTML = html;
+    modal.classList.remove('hidden');
+  }
+  function hideModal() { modal.classList.add('hidden'); }
+
+  function showIntro() {
+    state = 'menu';
+    const cfg = LEVELS[levelIndex];
+    showModal(`
+      <div class="modal-tag">${cfg.company}</div>
+      <h2>${cfg.title}</h2>
+      <p class="story">${cfg.story}</p>
+      <div class="rulebox">${cfg.rules}</div>
+      <div class="target">目标：清空牌堆 · 槽位 <b>7 格</b> · 剩余坑 <b>${cfg.triples * 3}</b></div>
+      <div class="statline"><span>最高分 <b>${fmt(best)}</b></span><span>关卡 <b>${levelIndex + 1} / 3</b></span></div>
+      <button class="btn" id="startLevel">开始第 ${levelIndex + 1} 关</button>
+      <div class="meta">第一关是教学；第二关开始，对手会往牌堆里塞牌。</div>
+    `);
+    $('startLevel').onclick = beginLevel;
+  }
+
+  function beginLevel() {
+    buildLevel(levelIndex);
+    state = 'playing';
+    hideModal();
+    levelStartMs = performance.now();
+    updateHud();
+  }
+
+  function startRun() {
+    score = 0; runAch = new Set();
+    levelIndex = 0;
+    clearTimers();
+    state = 'menu';
+    showIntro();
+  }
+
+  function showLevelClear(cfg, propBonus, slotBonus) {
+    const last = levelIndex === 2;
+    showModal(`
+      <div class="modal-tag">LEVEL CLEAR · ${cfg.company}</div>
+      <h2>✅ ${cfg.title} 过关</h2>
+      <p>${cfg.win}</p>
+      <div class="statline">
+        <span>得分 <b>${fmt(score)}</b></span>
+        <span>道具奖励 <b>+${propBonus}</b></span>
+        <span>槽位奖励 <b>+${slotBonus}</b></span>
+        <span>步数 <b>${moves}</b></span>
+      </div>
+      <div class="ach">${[...runAch].map(id => `<span>🏆 ${ACH[id].n}</span>`).join('') || '<span>本关暂无成就</span>'}</div>
+      <button class="btn" id="nextLevel">${last ? '查看最终战绩' : '进入第 ' + (levelIndex + 2) + ' 关'}</button>
+    `);
+    $('nextLevel').onclick = () => {
+      if (last) showFinal(true);
+      else { levelIndex++; state = 'menu'; showIntro(); }
+    };
+  }
+
+  function showGameOver(reason) {
+    state = 'over';
+    const cfg = LEVELS[levelIndex];
+    showModal(`
+      <div class="modal-tag">GAME OVER · ${cfg.company}</div>
+      <h2>☠️ 槽位被坑填满了</h2>
+      <p>${reason}。${cfg.lose}</p>
+      <div class="big-score red">${fmt(score)}</div>
+      <div class="center" style="font-size:11px;color:var(--dim)">本局得分 · 最高分 ${fmt(best)}</div>
+      <div class="statline">
+        <span>到达 <b>第 ${levelIndex + 1} 关</b></span>
+        <span>最高连击 <b>×${Math.max(1, maxCombo)}</b></span>
+        <span>步数 <b>${moves}</b></span>
+      </div>
+      <div class="ach">${[...runAch].map(id => `<span>🏆 ${ACH[id].n}</span>`).join('') || '<span>还没有解锁成就</span>'}</div>
+      <div class="row">
+        <button class="btn" id="retry">重开一局</button>
+        <button class="btn ghost" id="shareOver">分享战绩</button>
+      </div>
+      <button class="btn ghost" id="saveOver" style="margin-top:8px">保存战绩图</button>
+      <div class="share-tip">${shareText(false)}</div>
+    `);
+    $('retry').onclick = startRun;
+    $('shareOver').onclick = () => shareResult(false);
+    $('saveOver').onclick = () => saveCard(false);
+  }
+
+  function showFinal(won) {
+    state = won ? 'win' : 'over';
+    const cfg = LEVELS[levelIndex];
+    const ach = [...runAch];
+    showModal(`
+      <div class="modal-tag">${won ? 'CLEAN · SURVIVOR' : 'GRAVEYARD'}</div>
+      <h2>${won ? '🧹 你清完了所有坑' : '☠️ 清算'}</h2>
+      <p>${won ? cfg.win : cfg.lose}</p>
+      <div class="big-score ${won ? '' : 'red'}">${fmt(score)}</div>
+      <div class="center" style="font-size:11px;color:var(--dim)">最终得分 · 最高分 ${fmt(best)}</div>
+      <div class="statline">
+        <span>最高连击 <b>×${Math.max(1, maxCombo)}</b></span>
+        <span>步数 <b>${moves}</b></span>
+        <span>成就 <b>${ach.length} / 6</b></span>
+      </div>
+      <div class="ach">${ach.map(id => `<span>🏆 ${ACH[id].n}</span>`).join('') || '<span>这局没有解锁成就</span>'}</div>
+      <div class="row">
+        <button class="btn" id="shareFinal">分享战绩</button>
+        <button class="btn ghost" id="retryFinal">再来一局</button>
+      </div>
+      <button class="btn ghost" id="saveFinal" style="margin-top:8px">保存战绩图</button>
+      <div class="share-tip">${shareText(true)}</div>
+    `);
+    $('shareFinal').onclick = () => shareResult(true);
+    $('retryFinal').onclick = startRun;
+    $('saveFinal').onclick = () => saveCard(true);
+  }
+
+  // ---------- 分享 ----------
+  function shareText(won) {
+    return `【消除创业坑】${won ? '清空 45 个坑' : '倒在第 ' + (levelIndex + 1) + ' 关'}｜得分 ${fmt(score)}｜最高连击 ×${Math.max(1, maxCombo)}｜步数 ${moves}\n创业墓地 · 第 1210 号${won ? '幸存者' : '展品'}`;
+  }
+
+  async function shareResult(won) {
+    const text = shareText(won);
+    if (navigator.share) {
+      try { await navigator.share({ title: '消除创业坑', text }); return; } catch {}
+    }
+    const ok = await copyText(text);
+    toast(ok ? '✅ 战绩已复制，去粘贴吧' : '复制失败，请长按文字');
+  }
+
+  function saveCard(won) {
+    const c = document.createElement('canvas');
+    c.width = 600; c.height = 800;
+    const x = c.getContext('2d');
+    const g = x.createLinearGradient(0, 0, 0, 800);
+    g.addColorStop(0, '#0b1220'); g.addColorStop(1, '#070a11');
+    x.fillStyle = g; x.fillRect(0, 0, 600, 800);
+    x.strokeStyle = '#26344a'; x.lineWidth = 3; x.strokeRect(18, 18, 564, 764);
+    x.textAlign = 'center';
+    x.fillStyle = '#f0b429'; x.font = '900 34px system-ui'; x.fillText('消除创业坑', 300, 100);
+    x.fillStyle = '#8b949e'; x.font = '600 16px system-ui'; x.fillText('创业墓地 · GRAVEYARD GAME', 300, 134);
+    x.fillStyle = won ? '#3fb950' : '#f85149'; x.font = '900 58px system-ui';
+    x.fillText(won ? '清空通关' : '槽位爆炸', 300, 250);
+    x.fillStyle = '#e6edf3'; x.font = '900 72px system-ui'; x.fillText(fmt(score), 300, 360);
+    x.fillStyle = '#8b949e'; x.font = '600 18px system-ui'; x.fillText('最终得分', 300, 395);
+    x.fillStyle = '#c7d2df'; x.font = '600 20px system-ui';
+    x.fillText(`第 ${levelIndex + 1} 关 · 最高连击 ×${Math.max(1, maxCombo)} · 步数 ${moves}`, 300, 470);
+    x.fillStyle = '#5d6b7f'; x.font = '600 16px system-ui';
+    x.fillText(shareText(won).split('\n')[0], 300, 540);
+    x.fillStyle = '#f0b429'; x.font = '700 16px system-ui';
+    x.fillText('长按保存 / 截图分享', 300, 700);
+    c.toBlob((blob) => {
+      if (!blob) { toast('保存失败'); return; }
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `消除创业坑-${won ? '通关' : '失败'}.png`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      toast('🖼 战绩图已生成');
+    }, 'image/png');
+  }
+
+  // ---------- 按钮 ----------
+  undoBtn.addEventListener('click', undo);
+  shuffleBtn.addEventListener('click', shuffleBoard);
+  outBtn.addEventListener('click', moveOut);
+  helpBtn.addEventListener('click', askHelp);
+
+  // ---------- 启动 ----------
+  window.addEventListener('load', () => { fitBoard(); startRun(); updateHud(); });
+  fitBoard();
+
+  // ---------- 调试钩子（仅供本地自动化测试） ----------
+  window.__game = {
+    get state() { return state; },
+    get level() { return levelIndex; },
+    get tray() { return [...tray]; },
+    get score() { return score; },
+    get maxCombo() { return maxCombo; },
+    get board() { return cards.filter(c => !c.removed).map(c => ({ id: c.id, type: c.type, x: c.x, y: c.y, z: c.z })); },
+    get locks() { return activeLocks(); },
+    start() { startRun(); },
+    begin() { beginLevel(); },
+    setup(i) { levelIndex = i; buildLevel(i); state = 'playing'; hideModal(); },
+    tap(id) { const c = cards.find(x => x.id === id && !x.removed); if (c) tapCard(c); },
+    tapType(type) { const c = cards.find(x => x.type === type && !x.removed); if (c) tapCard(c); },
+    wave() { spawnWave(); },
+    autoPlay() {
+      const guard = 200;
+      let n = 0;
+      while (state === 'playing' && cards.some(c => !c.removed) && n++ < guard) {
+        const alive = cards.filter(c => !c.removed);
+        const counts = {};
+        for (const c of alive) counts[c.type] = (counts[c.type] || 0) + 1;
+        let chosen = null;
+        for (const t of Object.keys(counts)) if (counts[t] >= 3) { chosen = t; break; }
+        if (!chosen) chosen = alive[0].type;
+        const same = alive.filter(c => c.type === chosen);
+        for (let k = 0; k < 3 && k < same.length; k++) tapCard(same[k]);
+        // 清理槽位：如果卡住，调用一次移出/洗牌
+        if (state === 'playing' && tray.length >= trayCapacity()) {
+          if (outLeft > 0) moveOut(); else if (shuffleLeft > 0) shuffleBoard(); else break;
+        }
+      }
+    },
+    loseNow() { lose('调试'); },
+  };
+})();
+</script>
+</body>
+</html>

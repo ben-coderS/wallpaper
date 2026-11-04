@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>创业墓地：逆风翻盘 | Loot-Drop 游戏版</title>
+<style>
+  :root{--bg:#0d1117;--card:#161b22;--border:#30363d;--text:#e6edf3;--dim:#8b949e;--gold:#f0b429;--red:#f85149;--green:#3fb950;--blue:#58a6ff}
+  *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+  body{background:var(--bg);color:var(--text);min-height:100vh;padding:20px}
+  .wrap{max-width:760px;margin:0 auto}
+  h1{font-size:26px;letter-spacing:1px}
+  .sub{color:var(--dim);font-size:13px;margin:6px 0 18px}
+  .stats{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+  .stat{flex:1;min-width:140px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+  .stat .lbl{font-size:12px;color:var(--dim)}
+  .stat .val{font-size:20px;font-weight:700;margin-top:2px}
+  .bar{height:6px;background:#21262d;border-radius:3px;margin-top:8px;overflow:hidden}
+  .bar i{display:block;height:100%;border-radius:3px;transition:width .4s}
+  .scene{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:14px}
+  .round-tag{font-size:12px;color:var(--gold);letter-spacing:2px;margin-bottom:8px}
+  .scene h2{font-size:18px;margin-bottom:10px}
+  .scene p{color:var(--dim);font-size:14px;line-height:1.7;margin-bottom:14px}
+  .opt{display:block;width:100%;text-align:left;background:#21262d;border:1px solid var(--border);color:var(--text);border-radius:10px;padding:12px 14px;margin-bottom:8px;font-size:14px;cursor:pointer;transition:.15s}
+  .opt:hover{border-color:var(--blue);transform:translateX(3px)}
+  .verdict{border-left:3px solid var(--gold);background:#1c2128;padding:12px 14px;border-radius:0 10px 10px 0;margin:12px 0;font-size:13px;line-height:1.7}
+  .verdict b{color:var(--gold)}
+  .delta{font-size:12px;margin-top:6px}
+  .delta .g{color:var(--green)}.delta .r{color:var(--red)}
+  .btn{background:var(--gold);color:#0d1117;border:none;border-radius:10px;padding:12px 26px;font-size:15px;font-weight:700;cursor:pointer}
+  .btn.ghost{background:transparent;color:var(--dim);border:1px solid var(--border);font-weight:400}
+  .row{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+  .end{font-size:34px;text-align:center;padding:30px 0 10px}
+  .end.win{color:var(--green)}.end.dead{color:var(--red)}
+  .grade{text-align:center;color:var(--gold);font-size:15px;margin-bottom:16px}
+  textarea{width:100%;min-height:70px;background:#0d1117;border:1px solid var(--border);border-radius:10px;color:var(--text);padding:12px;font-family:monospace;font-size:12px;margin-top:10px}
+  .foot{color:#484f58;font-size:11px;text-align:center;margin-top:24px;line-height:1.6}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>☠️ 创业墓地：逆风翻盘</h1>
+  <div class="sub">引擎数据来自 Loot-Drop（1,628 份破产尸检 · $502B 烧掉的资本 · 7 大反模式）。你是一名刚拿到融资的创始人——历史说 100% 的公司最终死了。你能逆风翻盘吗？</div>
+
+  <div id="game">
+    <div class="stats">
+      <div class="stat"><div class="lbl">💰 现金</div><div class="val" id="s-cash"></div><div class="bar"><i id="b-cash" style="background:var(--green)"></i></div></div>
+      <div class="stat"><div class="lbl">👥 用户</div><div class="val" id="s-users"></div><div class="bar"><i id="b-users" style="background:var(--blue)"></i></div></div>
+      <div class="stat"><div class="lbl">🔥 团队士气</div><div class="val" id="s-morale"></div><div class="bar"><i id="b-morale" style="background:var(--gold)"></i></div></div>
+    </div>
+    <div class="scene" id="scene"></div>
+    <div class="verdict hidden" id="verdict"></div>
+    <div class="row"><button class="btn hidden" id="next">下一幕 →</button><button class="btn ghost hidden" id="restart">重开一局</button></div>
+  </div>
+
+  <div id="end" class="hidden">
+    <div class="end" id="end-title"></div>
+    <div class="grade" id="end-grade"></div>
+    <div class="scene" id="end-report"></div>
+    <textarea id="output" readonly></textarea>
+    <div class="row">
+      <button class="btn" onclick="navigator.clipboard.writeText(document.getElementById('output').value).then(()=>event.target.textContent='✅ 已复制，粘回聊天')">📋 复制战绩给 AI 合伙人</button>
+      <button class="btn ghost" onclick="reset()">再玩一局</button>
+    </div>
+  </div>
+
+  <div class="foot">案例为公开报道改编（摩拜/乐视/Quibi/Homejoy 等），尸检主题归纳自 loot-drop.io 的失败数据库。<br>免责声明同款：AI 整理，仅供复盘娱乐，非投资建议。</div>
+</div>
+
+<script>
+const ROUNDS=[
+{tag:"第 1 幕 · 融资到手",title:"$2M 进账，产品还没人用",
+ text:"你是「鲸视」创始人：AI 生成短视频壁纸 App。刚拿天使轮，账上 200 万刀，用户 5 千。投资人说：『证明增长，18 个月后再见。』",
+ opts:[
+  {n:"全渠道买量冲增长曲线",eff:{cash:-90,users:+60,morale:-10},anti:"过早扩张",case:"Reality Mining 系产品常见死法：买量堆出的曲线停投即掉。Quibi 烧了 17 亿美元营销，上线 8 个月关停——内容再好，渠道错了也是白烧。"},
+  {n:"先泡 100 个真实用户，改到他们舍不得删",eff:{cash:-10,users:+15,morale:+10},anti:null,case:"这是反模式 #1『无市场需求』的唯一解药。Airbnb 早期挨家帮房东拍照——脏活换来的留存，买量买不来。"},
+  {n:"先扩招，把架构图重构成未来三年的样子",eff:{cash:-50,users:+2,morale:-15},anti:"团队/过早基建",case:"「为想象中的规模招人」是尸检高频词。Homejoy 融资后激进扩张服务城市，人力成本击穿毛利，一年就倒。"}]},
+{tag:"第 2 幕 · 竞品出现",title:"大厂把同款功能塞进了主 App",
+ text:"某超级 App 上线「AI 壁纸」，免费，流量是你们的 500 倍。团队慌了，深夜会议室等你拍板。",
+ opts:[
+  {n:"正面刚：也免费，拼补贴",eff:{cash:-70,users:+20,morale:-20},anti:"致命竞争",case:"尸检库『被巨头顺手做掉』类目 22 个行业之一。补贴大战的终局摩拜和 ofo 都体验过：没有差异化，免费只是延缓死亡的价格战。"},
+  {n:"退进niche：只做『刑侦/法医教学壁纸』这类巨头不屑做的垂直场景",eff:{cash:-5,users:+8,morale:+15},anti:null,case:"垂直生存定律：Basecamp 从 37signals 的血海里退出通用项目管理，活得比谁都久。巨头『顺手』的范围之外，才是你的护城河。"},
+  {n:"告它抄袭，All in 法务战",eff:{cash:-40,users:-10,morale:-25},anti:"错战场",case:"诉讼烧钱且胜率渺茫，创始人时间被法庭日程绑架。Zenefax 之类专利战幸存者寥寥，尸检库里躺着一排『赢了官司死了公司』。"}]},
+{tag:"第 3 幕 · 收入抉择",title:"烧钱 14 个月，账上只够 5 个月",
+ text:"垂直用户涨到 12 万，粘性不错，但没人付钱。CFO 把三条路拍在桌上。",
+ opts:[
+  {n:"再融一轮，估值翻倍讲故事",eff:{cash:+55,users:0,morale:+5},anti:"融资续命",case:"『融资=氧气』幻觉是墓地主因之一。WeWork 估值神话撑到 2023 年正式破产，ofo 六轮融资仍欠 1600 万用户押金。下一轮窗口关上时，故事救不了现金流。"},
+  {n:"上订阅：$4.99/月，接受用户掉三成",eff:{cash:+25,users:-25,morale:-5},anti:null,case:"付费墙筛掉的是白嫖盘，留下的是真需求。Slack 早期顶着『工具凭什么收费』的嘲讽转付费，收入曲线才真正立起来。"},
+  {n:"卖广告位，用户不用掏钱",eff:{cash:+10,users:+5,morale:-10},anti:"模式错配",case:"小流量卖广告=给体验下毒。工具类 App 广告变现的天花板极低，尸检库里『广告依赖型工具』平均寿命 2.1 年，全场最短。"}]},
+{tag:"第 4 幕 · 死亡螺旋",title:"数据开始背叛你",
+ text:"（引擎判定：前两幕的选择正在结算。）",dynamic:true,opts:[]},
+{tag:"第 5 幕 · 翻盘窗口",title:"还剩最后一口气，三个方向",
+ text:"账上现金见底的时刻，也是历史里 1209 家公司分岔的时刻：绝大多数选了『再来一次大的』，然后进了墓地。少数活下来的，都做了不体面的事。",
+ opts:[
+  {n:"裁到 5 人小队，砍掉一切不赚钱的功能，只服务付费的那批人",eff:{cash:+30,users:-15,morale:-10},anti:null,case:"『体面地缩小』是尸检库最稀缺的求生技能。37signals 公开砍掉一半产品线活到今天；Groupon 从千人公司裁到几百人，至少没进墓地。"},
+  {n:"接一个不性感但付现金的活：给银行做壁纸素材外包",eff:{cash:+40,users:-5,morale:+5},anti:null,case:"『服务养产品』是被验证的两段式：37signals 靠外包养活出 Basecamp，Mailchimp 靠卖设计服务熬出邮件帝国。墓地里的公司大多嫌外包脏。"},
+  {n:"All in 一次版本大改版，赌爆款翻红",eff:{cash:-45,users:+10,morale:-20},anti:"赌徒式最后豪赌",case:"尸检库最整齐的墓碑：『最后一次大赌』。Jawbone 濒死时把资源全押 UP4 手环，2017 年清算倒闭。赌赢的案例不是没有，但幸存者偏差让你只听得见赢的。"}]},
+{tag:"第 6 幕 · 终局",title:"18 个月之约",
+ text:"投资人的邮件到了：『发一下最新数据，我们决定跟投还是退出。』",final:true,opts:[]}
+];
+let S={cash:100,users:8,morale:100,r:0,anti:[],log:[],dead:false,pivotGood:0};
+const fmt$=v=>"$"+(v*2).toLocaleString()+"万";
+function render(){
+  document.getElementById("s-cash").textContent=fmt$(S.cash);
+  document.getElementById("s-users").textContent=S.users+"k";
+  document.getElementById("s-morale").textContent=S.morale+"%";
+  document.getElementById("b-cash").style.width=Math.max(0,Math.min(100,S.cash))+"%";
+  document.getElementById("b-cash").style.background=S.cash<25?"var(--red)":"var(--green)";
+  document.getElementById("b-users").style.width=Math.min(100,S.users)+"%";
+  document.getElementById("b-morale").style.width=Math.max(0,S.morale)+"%";
+}
+function scene(){
+  const sc=document.getElementById("scene"),R=ROUNDS[S.r];
+  document.getElementById("verdict").classList.add("hidden");
+  document.getElementById("next").classList.add("hidden");
+  if(R.dynamic){ // 死亡螺旋：按前非反模式选择数结算
+    const good=S.anti.length===0, mid=S.anti.length===1;
+    let txt,eff;
+    if(good){S.cash-=10;S.users+=15;S.morale+=10;txt="✅ 前两幕你避开了所有反模式——增长曲线是真的。现金小烧 10%，用户口碑带来 +15k。死亡螺旋绕过了你（历史上 12% 的公司有这个待遇）。";}
+    else if(mid){S.cash-=30;S.users-=10;S.morale-=15;txt="⚠️ 你踩中过 1 个反模式（"+S.anti[0]+"）。它的账单现在到期：现金 -30%，用户流失 10k。Loot-Drop 的 Sankey 图里，每个反模式都有一根线通向这里。";}
+    else{S.cash-=55;S.users-=30;S.morale-=30;txt="💀 你集齐了 "+S.anti.length+" 个反模式（"+S.anti.join("、")+"）。它们互相咬合触发死亡螺旋：现金腰斩、用户崩盘。这就是那 1,628 块墓碑的共同成因——不是单一死因，是模式叠加。";}
+    S.log.push("第4幕结算："+txt);
+    if(S.cash<=0||S.morale<=0){return end(false,"死亡螺旋没有出口");}
+    show(R.tag,R.title,txt,[]);afterChoice(()=>{S.r++;tick();});return;
+  }
+  if(R.final){
+    let survived=!S.dead&&S.cash>0&&S.morale>0;
+    let gradeTxt,extra="";
+    if(survived&&S.cash>=60&&S.users>=10){gradeTxt="🏆 S 级 · 教科书级翻盘：现金健康+垂直壁垒+付费闭环。你是那 1209 块墓碑旁边活着的 1%。";}
+    else if(survived&&S.cash>=30){gradeTxt="🥈 A 级 · 活下来了：现金流续上，但离安全还有一年。历史上这个位置的公司多数死于『觉得自己安全了』。";}
+    else if(survived){gradeTxt="🥉 C 级 · 苟延残喘：账上的钱只够撑 2 个月。投资人回复大概率是『不跟了』——但你还活着，活着就有下一幕。";}
+    else{gradeTxt="☠️ 尸体入库：欢迎加入 Loot-Drop 第 1210 号展位。";survived=false;}
+    extra="\n\n投资人回信：「"+(surved(survived))+"」";
+    show("终局","18 个月之约",(survived?"你的数据摆上桌：现金 "+fmt$(S.cash)+"、付费用户 "+S.users+"k、士气 "+S.morale+"%。":"数据已经不重要了。")+gradeTxt+extra,[]);
+    afterChoice(()=>end(survived,gradeTxt));return;
+  }
+  show(R.tag,R.title,R.text,R.opts.map(o=>o.n));
+}
+function surved(s){return s?"数据健康，垂直场景是我们没想到的——领投续约，追加 $1M。":"你们的留存曲线…我们投的那家已经关了。抱歉。";}
+function show(tag,title,text,names){
+  const sc=document.getElementById("scene");
+  sc.innerHTML='<div class="round-tag">'+tag+'</div><h2>'+title+'</h2><p>'+text.replace(/\n/g,'<br>')+'</p>'+
+    names.map((n,i)=>'<button class="opt" onclick="pick('+i+')">'+String.fromCharCode(65+i)+". "+n+"</button>").join("");
+}
+function pick(i){
+  const R=ROUNDS[S.r],o=R.opts[i];
+  S.cash+=o.eff.cash;S.users=Math.max(0,S.users+o.eff.users);S.morale=Math.max(0,S.morale+o.eff.morale);
+  if(o.anti)S.anti.push(o.anti);
+  document.querySelectorAll(".opt").forEach(b=>b.disabled=true);
+  const v=document.getElementById("verdict");
+  v.innerHTML="<b>尸检档案 · 现实中选这个的：</b>"+o.case+
+    '<div class="delta">现金 <span class="'+(o.eff.cash>=0?"g":"r")+'">'+(o.eff.cash>=0?"+":"")+o.eff.cash+"</span> · 用户 <span class=\""+(o.eff.users>=0?"g":"r")+'\">'+(o.eff.users>=0?"+":"")+o.eff.users+"k</span> · 士气 <span class=\""+(o.eff.morale>=0?"g":"r")+'\">'+(o.eff.morale>=0?"+":"")+o.eff.morale+"</span>"+(o.anti?" · ⚠️ 反模式+1："+o.anti:"")+"</div>";
+  v.classList.remove("hidden");
+  S.log.push("第"+(S.r+1)+"幕选择："+o.n+(o.anti?"（踩中反模式："+o.anti+"）":"（安全）"));
+  render();
+  if(S.cash<=0||S.morale<=0){afterChoice(()=>end(false,"现金或士气归零——提前入土"));}
+  else document.getElementById("next").classList.remove("hidden");
+}
+function afterChoice(f){document.getElementById("next").classList.remove("hidden");document.getElementById("next").onclick=f;}
+function tick(){document.getElementById("game").classList.remove("hidden");render();scene();}
+function end(surv,why){
+  document.getElementById("game").classList.add("hidden");
+  document.getElementById("end").classList.remove("hidden");
+  const t=document.getElementById("end-title");
+  t.textContent=surv?"🌅 你逆风翻盘了":"☠️ 你成了第 1210 号展品";
+  t.className="end "+(surv?"win":"dead");
+  const hits=S.anti.length;
+  document.getElementById("end-grade").textContent="反模式命中 "+hits+"/3 · 翻盘指数 "+(surv?Math.max(0,100-hits*30-(S.cash<30?20:0)):0)+"/100";
+  document.getElementById("end-report").innerHTML="<h2>本局尸检报告</h2><p>"+S.log.map(l=>"• "+l).join("<br>")+"<br><br><b>结论：</b>"+why+"</p>";
+  document.getElementById("output").value="【创业墓地战绩】结局:"+(surv?"翻盘":"破产")+" | 反模式:"+ (S.anti.join("、")||"零命中")+" | 终局现金:"+fmt$(S.cash)+" | 用户:"+S.users+"k | 士气:"+S.morale+"%\n"+S.log.join("\n");
+}
+function reset(){S={cash:100,users:8,morale:100,r:0,anti:[],log:[],dead:false,pivotGood:0};document.getElementById("end").classList.add("hidden");document.getElementById("restart").classList.add("hidden");tick();}
+document.getElementById("restart").classList.add("hidden");
+tick();
+</script>
+</body>
+</html>
